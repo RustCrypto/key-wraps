@@ -1,4 +1,4 @@
-use aes_kw::{unwrap, wrap};
+use aes_kw::Kek;
 
 use std::assert_eq;
 
@@ -10,17 +10,19 @@ mod tests {
         ($name:ident, $kek:expr, $input:expr, $output:expr) => {
             #[test]
             fn $name() {
-                let kek = hex::decode($kek).unwrap();
+                use std::convert::TryFrom;
+
+                let kek = Kek::try_from(&hex::decode($kek).unwrap()[..]).unwrap();
                 let input_bin = hex::decode($input).unwrap();
                 let output_bin = hex::decode($output).unwrap();
 
                 assert_eq!(
-                    hex::encode(wrap(&kek, &input_bin).unwrap()),
+                    hex::encode(kek.wrap(&input_bin).unwrap()),
                     $output.to_lowercase(),
                     "failed wrap"
                 );
                 assert_eq!(
-                    hex::encode(unwrap(&kek, &output_bin).unwrap()),
+                    hex::encode(kek.unwrap(&output_bin).unwrap()),
                     $input.to_lowercase(),
                     "failed unwrap"
                 );
