@@ -19,7 +19,7 @@ use hex_literal::hex;
 use std::{assert_eq, assert};
 use std::convert::TryFrom;
 
-let kek = Kek::try_from(hex!("000102030405060708090A0B0C0D0E0F")).unwrap();
+let kek = Kek::from(hex!("000102030405060708090A0B0C0D0E0F"));
 let input_key = hex!("00112233445566778899AABBCCDDEEFF");
 
 let wrapped_key = kek.wrap(&input_key).unwrap();
