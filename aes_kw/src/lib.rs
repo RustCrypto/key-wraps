@@ -1,33 +1,4 @@
-//! An implementation of KW, the [NIST AES-KW key Wrapping Method][1].
-//!
-//! # Usage
-//!
-//! The most common way to use KW is as follows: you provide the Key Wrapping Key
-//! and the key-to-be-wrapped, then wrap it, or provide a wrapped-key and unwrap it.
-//!
-//! ```rust
-//! use aes_kw::*;
-//! use hex_literal::hex;
-//! use std::{assert_eq,assert};
-//! 
-//! let kek = hex!("000102030405060708090A0B0C0D0E0F");
-//! let input_key = hex!("00112233445566778899AABBCCDDEEFF");
-//! 
-//! let wrapped_key = wrap(&kek, &input_key).unwrap();
-//! assert_eq!(wrapped_key, hex!("1FA68B0A8112B447AEF34BD8FB5A7B829D3E862371D2CFE5"));
-//! 
-//! let unwrapped_key = unwrap(&kek, &wrapped_key);
-//! 
-//! match unwrapped_key {
-//!   Ok(unwrapped_key) => {
-//!     assert_eq!(unwrapped_key, input_key);
-//!   }
-//!   Err(err) => {
-//!     assert!(false,"Unwrap key failed {:?}", err);
-//!   }
-//! }
-//! ```
-
+#![doc = include_str!("../README.md")]
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/6ee8e381/logo.svg",
     html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/6ee8e381/logo.svg",

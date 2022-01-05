@@ -5,8 +5,8 @@ on:
     paths:
       - "aes_kw/**"
       - "Cargo.*"
-  push:
-    branches: master
+    push:
+      branches: master
 
 defaults:
   run:

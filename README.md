@@ -10,7 +10,7 @@ Collection of [Key Wrapping Functions][KW] (KW) written in pure Rust.
 |-----------|--------|:-------------:|:-------------:|:----:|
 | [AES_KW]    | [`aes_kw`] | [![crates.io](https://img.shields.io/crates/v/aes_kw.svg)](https://crates.io/crates/aes_kw) | [![Documentation](https://docs.rs/aes_kw/badge.svg)](https://docs.rs/aes_kw) | ![MSRV 1.41][msrv-1.41] |
 
-*NOTE: for modern proven KWs (e.g. AES-SIV, AES-GCM-SI), please see [RustCrypto/AEADs]*
+*NOTE: for modern proven KWs (e.g. AES-SIV, AES-GCM-SIV), please see [RustCrypto/AEADs]*
 
 ### Minimum Supported Rust Version (MSRV) Policy
 
