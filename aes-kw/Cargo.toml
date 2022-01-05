@@ -1,0 +1,27 @@
+[package]
+name = "aes-kw"
+version = "0.0.0" # Also update html_root_url in lib.rs when bumping this
+authors = ["RustCrypto Developers"]
+license = "MIT OR Apache-2.0"
+homepage = "https://github.com/RustCrypto/key-wraps/"
+repository = "https://github.com/RustCrypto/key-wraps/tree/aes-kw"
+description = "Nist 800-38F AES Key Wrapping Method (KW)"
+keywords = ["crypto", "AES-KW", "KW"]
+categories = ["cryptography", "no-std"]
+readme = "README.md"
+edition = "2021"
+rust-version = "1.56"
+
+[dependencies]
+aes = "0.7"
+byteorder = "1.4"
+generic-array = "0.14"
+lazy_static = "1.2.0"
+
+[dev-dependencies]
+hex-literal = "0.2"
+hex = "0.4"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
