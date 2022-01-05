@@ -14,16 +14,16 @@ extern crate lazy_static;
 use aes::cipher::{BlockDecrypt, BlockEncrypt, NewBlockCipher};
 use byteorder::{BigEndian, WriteBytesExt};
 use generic_array::sequence::{Concat, Split};
-use generic_array::{GenericArray, arr};
 use generic_array::typenum::U8;
+use generic_array::{arr, GenericArray};
 
 /// Error types
 #[derive(Debug)]
 pub enum Error {
-  /// Input length invalid
-  InvalidLength(String),  
-  /// general error
-  Message(String),  
+    /// Input length invalid
+    InvalidLength(String),
+    /// general error
+    Message(String),
 }
 
 macro_rules! bail {
@@ -42,33 +42,37 @@ lazy_static! {
 /// AES Key Wrap
 /// As defined in RFC 3394.
 pub fn wrap(key: &[u8], data: &[u8]) -> Result<Vec<u8>, crate::Error> {
-  if data.len() % 8 != 0 {
-    return Err(Error::InvalidLength("data must be a multiple of 64bits".to_string()));
-  }
+    if data.len() % 8 != 0 {
+        return Err(Error::InvalidLength(
+            "data must be a multiple of 64bits".to_string(),
+        ));
+    }
 
-  let aes_size = key.len() * 8;
-  match aes_size {
-      128 => Ok(wrap_128(key, data)),
-      192 => Ok(wrap_192(key, data)),
-      256 => Ok(wrap_256(key, data)),
-      _ => bail!("invalid aes key size: {}", aes_size),
-  }
+    let aes_size = key.len() * 8;
+    match aes_size {
+        128 => Ok(wrap_128(key, data)),
+        192 => Ok(wrap_192(key, data)),
+        256 => Ok(wrap_256(key, data)),
+        _ => bail!("invalid aes key size: {}", aes_size),
+    }
 }
 
 /// AES Key Unwrap
 /// As defined in RFC 3394.
 pub fn unwrap(key: &[u8], data: &[u8]) -> Result<Vec<u8>, crate::Error> {
-  if data.len() % 8 != 0 {
-    return Err(Error::InvalidLength("data must be a multiple of 64bit".to_string()));
-  }
+    if data.len() % 8 != 0 {
+        return Err(Error::InvalidLength(
+            "data must be a multiple of 64bit".to_string(),
+        ));
+    }
 
-  let aes_size = key.len() * 8;
-  match aes_size {
-      128 => unwrap_128(key, data),
-      192 => unwrap_192(key, data),
-      256 => unwrap_256(key, data),
-      _ => bail!("invalid aes key size: {}", aes_size),
-  }
+    let aes_size = key.len() * 8;
+    match aes_size {
+        128 => unwrap_128(key, data),
+        192 => unwrap_192(key, data),
+        256 => unwrap_256(key, data),
+        _ => bail!("invalid aes key size: {}", aes_size),
+    }
 }
 
 macro_rules! impl_aes_kw {
