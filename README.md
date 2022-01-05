@@ -8,7 +8,7 @@ Collection of [Key Wrapping Functions][KW] (KW) written in pure Rust.
 
 | Algorithm | Crate  | Crates.io     | Documentation | MSRV |
 |-----------|--------|:-------------:|:-------------:|:----:|
-| [AES-KW]    | [`aes-kw`] | [![crates.io](https://img.shields.io/crates/v/aes-kw.svg)](https://crates.io/crates/aes-kw) | [![Documentation](https://docs.rs/aes-kw/badge.svg)](https://docs.rs/aes-kw) | ![MSRV 1.56][msrv-1.56] |
+| [AES‑KW]    | [`aes‑kw`] | [![crates.io](https://img.shields.io/crates/v/aes-kw.svg)](https://crates.io/crates/aes-kw) | [![Documentation](https://docs.rs/aes-kw/badge.svg)](https://docs.rs/aes-kw) | ![MSRV 1.56][msrv-1.56] |
 
 *NOTE: for modern proven KWs (e.g. AES-SIV, AES-GCM-SIV), please see [RustCrypto/AEADs]*
 
@@ -38,10 +38,10 @@ Unless you explicitly state otherwise, any contribution intentionally submitted 
 
 [//]: # (crates)
 
-[`aes-kw`]: ./aes-kw
+[`aes‑kw`]: ./aes-kw
 
 [//]: # (algorithms)
 
 [KW]: https://en.wikipedia.org/wiki/Key_Wrap
-[AES-KW]: https://datatracker.ietf.org/doc/html/rfc3394
+[AES‑KW]: https://datatracker.ietf.org/doc/html/rfc3394
 [RustCrypto/AEADs]: https://github.com/RustCrypto/AEADs
