@@ -2,7 +2,7 @@
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/6ee8e381/logo.svg",
     html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/6ee8e381/logo.svg",
-    html_root_url = "https://docs.rs/aes_kw/0.1.0"
+    html_root_url = "https://docs.rs/aes-kw/0.0.0"
 )]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![forbid(unsafe_code)]
@@ -43,7 +43,7 @@ lazy_static! {
 /// As defined in RFC 3394.
 pub fn wrap(key: &[u8], data: &[u8]) -> Result<Vec<u8>, crate::Error> {
   if data.len() % 8 != 0 {
-    return Err(Error::InvalidLength("data must be a multiple of 64bit".to_string()));
+    return Err(Error::InvalidLength("data must be a multiple of 64bits".to_string()));
   }
 
   let aes_size = key.len() * 8;

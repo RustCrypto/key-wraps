@@ -8,7 +8,7 @@ Collection of [Key Wrapping Functions][KW] (KW) written in pure Rust.
 
 | Algorithm | Crate  | Crates.io     | Documentation | MSRV |
 |-----------|--------|:-------------:|:-------------:|:----:|
-| [AES_KW]    | [`aes_kw`] | [![crates.io](https://img.shields.io/crates/v/aes_kw.svg)](https://crates.io/crates/aes_kw) | [![Documentation](https://docs.rs/aes_kw/badge.svg)](https://docs.rs/aes_kw) | ![MSRV 1.41][msrv-1.41] |
+| [AES-KW]    | [`aes-kw`] | [![crates.io](https://img.shields.io/crates/v/aes-kw.svg)](https://crates.io/crates/aes-kw) | [![Documentation](https://docs.rs/aes-kw/badge.svg)](https://docs.rs/aes-kw) | ![MSRV 1.56][msrv-1.56] |
 
 *NOTE: for modern proven KWs (e.g. AES-SIV, AES-GCM-SIV), please see [RustCrypto/AEADs]*
 
@@ -31,12 +31,10 @@ Unless you explicitly state otherwise, any contribution intentionally submitted 
 
 [//]: # (badges)
 
-[chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
-[chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/260043-KDFs
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
-[deps-image]: https://deps.rs/repo/github/RustCrypto/KWs/status.svg
-[deps-link]: https://deps.rs/repo/github/RustCrypto/KWs
-[msrv-1.41]: https://img.shields.io/badge/rustc-1.41.0+-blue.svg
+[deps-image]: https://deps.rs/repo/github/RustCrypto/key-wraps/status.svg
+[deps-link]: https://deps.rs/repo/github/RustCrypto/key-wraps
+[msrv-1.56]: https://img.shields.io/badge/rustc-1.56.0+-blue.svg
 
 [//]: # (crates)
 

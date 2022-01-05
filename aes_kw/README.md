@@ -45,7 +45,6 @@ Implemented for 128/192/256bit keys.
 [docs-image]: https://docs.rs/aes-kw/badge.svg
 [docs-link]: https://docs.rs/aes-kw/
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
-[rustc-image]: https://img.shields.io/badge/rustc-1.41+-blue.svg
-[chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
-[build-image]: https://github.com/RustCrypto/KWs/workflows/aes-kw/badge.svg?branch=master&event=push
-[build-link]: https://github.com/RustCrypto/KWs/actions?query=workflow:aes-kw
+[rustc-image]: https://img.shields.io/badge/rustc-1.56+-blue.svg
+[build-image]: https://github.com/RustCrypto/key-wraps/workflows/aes-kw/badge.svg?branch=master&event=push
+[build-link]: https://github.com/RustCrypto/key-wraps/actions?query=workflow:aes-kw

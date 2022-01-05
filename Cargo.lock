@@ -15,8 +15,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "aes_kw"
-version = "0.1.0"
+name = "aes-kw"
+version = "0.0.0"
 dependencies = [
  "aes",
  "byteorder",
