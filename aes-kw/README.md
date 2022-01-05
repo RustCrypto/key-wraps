@@ -6,7 +6,7 @@
 ![Rust Version][rustc-image]
 [![Build Status][build-image]][build-link]
 
-Pure Rust implementation of KW, the [NIST AES-KW key Wrapping Method](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38F.pdf). Original implementation by @dignifiedquire [here](https://github.com/rpgp/rpgp/blob/master/src/crypto/aes_kw.rs).
+Pure Rust implementation of KW, the [NIST AES-KW Key Wrapping Method](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38F.pdf). Original implementation by @dignifiedquire can be found [here](https://github.com/rpgp/rpgp/blob/master/src/crypto/aes_kw.rs).
 
 # Usage
 

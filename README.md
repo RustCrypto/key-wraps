@@ -38,7 +38,7 @@ Unless you explicitly state otherwise, any contribution intentionally submitted 
 
 [//]: # (crates)
 
-[`aes_kw`]: ./aes_kw
+[`aes-kw`]: ./aes-kw
 
 [//]: # (algorithms)
 
