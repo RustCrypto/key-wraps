@@ -1,6 +1,6 @@
 # RustCrypto: Key Wrapping Functions
 
-[[![dependency status][deps-image]][deps-link] ![Apache2/MIT licensed][license-image]
+[![dependency status][deps-image]][deps-link] ![Apache2/MIT licensed][license-image]
 
 Collection of [Key Wrapping Functions][KW] (KW) written in pure Rust.
 
@@ -43,4 +43,5 @@ Unless you explicitly state otherwise, any contribution intentionally submitted 
 [//]: # (algorithms)
 
 [KW]: https://en.wikipedia.org/wiki/Key_Wrap
+[AES-KW]: https://datatracker.ietf.org/doc/html/rfc3394
 [RustCrypto/AEADs]: https://github.com/RustCrypto/AEADs
