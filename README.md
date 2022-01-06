@@ -2,7 +2,16 @@
 
 [![dependency status][deps-image]][deps-link] ![Apache2/MIT licensed][license-image]
 
-Collection of [Key Wrapping Functions][KW] (KW) written in pure Rust.
+Collection of symmetric [Key Wrapping Functions][KW] (KW) written in pure Rust.
+
+## About
+
+"Key Wraping" describes symmetric encryption algorithms designed for encrypting
+cryptographic key material under another symmetric key, known as a
+"Key-Encrypting-Key" (KEK).
+
+They're intended for applications such as protecting keys while in untrusted
+storage or transmitting keys over untrusted communications networks.
 
 ## Supported Algorithms
 

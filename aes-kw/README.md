@@ -1,4 +1,4 @@
-# RustCrypto: key-wraps
+# RustCrypto: AES Key Wrap Algorithm
 
 [![crate][crate-image]][crate-link]
 [![Docs][docs-image]][docs-link]
@@ -6,38 +6,56 @@
 ![Rust Version][rustc-image]
 [![Build Status][build-image]][build-link]
 
-Pure Rust implementation of KW, the [NIST AES-KW Key Wrapping Method](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38F.pdf). Original implementation by @dignifiedquire can be found [here](https://github.com/rpgp/rpgp/blob/master/src/crypto/aes_kw.rs).
+Pure Rust implementation of the [NIST AES-KW Key Wrapping Method] also
+described in [RFC3394].
 
-# Usage
+## About
 
-The most common way to use KW is as follows: you provide the Key Wrapping Key
-and the key-to-be-wrapped, then wrap it, or provide a wrapped-key and unwrap it.
+RFC3394 § 2 describes AES-KW as follows:
 
-```rust
-use aes_kw::Kek;
-use hex_literal::hex;
-use std::{assert_eq, assert};
-use std::convert::TryFrom;
+> The AES key wrap algorithm is designed to wrap or encrypt key data.
+> The key wrap operates on blocks of 64 bits.  Before being wrapped,
+> the key data is parsed into n blocks of 64 bits.
+> 
+> The only restriction the key wrap algorithm places on n is that n be
+> at least two.  (For key data with length less than or equal to 64
+> bits, the constant field used in this specification and the key data
+> form a single 128-bit codebook input making this key wrap
+> unnecessary.)  The key wrap algorithm accommodates all supported AES
+> key sizes.  However, other cryptographic values often need to be
+> wrapped.  One such value is the seed of the random number generator
+> for DSS.  This seed value requires n to be greater than four.
+> Undoubtedly other values require this type of protection. Therefore,
+> no upper bound is imposed on n.
+> 
+> The AES key wrap can be configured to use any of the three key sizes
+> supported by the AES codebook.  The choice of a key size affects the
+> overall security provided by the key wrap, but it does not alter the
+> description of the key wrap algorithm.  Therefore, in the description
+> that follows, the key wrap is described generically; no key size is
+> specified for the KEK.
 
-let kek = Kek::from(hex!("000102030405060708090A0B0C0D0E0F"));
-let input_key = hex!("00112233445566778899AABBCCDDEEFF");
+## Minimum Supported Rust Version
 
-let wrapped_key = kek.wrap(&input_key).unwrap();
-assert_eq!(wrapped_key, hex!("1FA68B0A8112B447AEF34BD8FB5A7B829D3E862371D2CFE5"));
+This crate requires **Rust 1.56** at a minimum.
 
-let unwrapped_key = kek.unwrap(&wrapped_key);
+We may change the MSRV in the future, but it will be accompanied by a minor
+version bump.
 
-match unwrapped_key {
-  Ok(unwrapped_key) => {
-    assert_eq!(unwrapped_key, input_key);
-  }
-  Err(err) => {
-    assert!(false,"Unwrap key failed {:?}", err);
-  }
-}
-```
+## License
 
-Implemented for 128/192/256bit keys.
+Licensed under either of:
+
+- [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
+- [MIT license](http://opensource.org/licenses/MIT)
+
+at your option.
+
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
+dual licensed as above, without any additional terms or conditions.
 
 [//]: # (badges)
 
@@ -47,5 +65,10 @@ Implemented for 128/192/256bit keys.
 [docs-link]: https://docs.rs/aes-kw/
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
 [rustc-image]: https://img.shields.io/badge/rustc-1.56+-blue.svg
-[build-image]: https://github.com/RustCrypto/key-wraps/workflows/aes-kw/badge.svg?branch=master&event=push
-[build-link]: https://github.com/RustCrypto/key-wraps/actions?query=workflow:aes-kw
+[build-image]: https://github.com/RustCrypto/key-wraps/actions/workflows/aes-kw.yml/badge.svg
+[build-link]: https://github.com/RustCrypto/key-wraps/actions/workflows/aes-kw.yml
+
+[//]: # (links)
+
+[NIST AES-KW Key Wrapping Method]: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38F.pdf
+[RFC3394]: https://datatracker.ietf.org/doc/html/rfc3394

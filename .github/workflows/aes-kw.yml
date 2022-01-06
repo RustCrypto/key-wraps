@@ -17,26 +17,25 @@ env:
   RUSTFLAGS: "-Dwarnings"
 
 jobs:
-#  TODO(tarcieri): no_std support  
-#  build:
-#    runs-on: ubuntu-latest
-#    strategy:
-#      matrix:
-#        rust:
-#          - 1.56.0 # MSRV
-#          - stable
-#        target:
-#          - thumbv7em-none-eabi
-#          - wasm32-unknown-unknown
-#    steps:
-#      - uses: actions/checkout@v1
-#      - uses: actions-rs/toolchain@v1
-#        with:
-#          profile: minimal
-#          toolchain: ${{ matrix.rust }}
-#          target: ${{ matrix.target }}
-#          override: true
-#      - run: cargo build --no-default-features --target ${{ matrix.target }}
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust:
+          - 1.56.0 # MSRV
+          - stable
+        target:
+          - thumbv7em-none-eabi
+          - wasm32-unknown-unknown
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          target: ${{ matrix.target }}
+          override: true
+      - run: cargo build --no-default-features --target ${{ matrix.target }}
 
   test:
     runs-on: ubuntu-latest

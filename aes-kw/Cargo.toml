@@ -18,7 +18,10 @@ generic-array = "0.14"
 
 [dev-dependencies]
 hex-literal = "0.3"
-hex = "0.4"
+
+[features]
+alloc = []
+std = ["alloc"]
 
 [package.metadata.docs.rs]
 all-features = true
