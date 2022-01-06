@@ -7,8 +7,16 @@ use generic_array::GenericArray;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 
+/// Size of an AES "semiblock" in bytes.
+///
+/// From NIST SP 800-38F § 4.1:
+///
+/// > semiblock: given a block cipher, a bit string whose length is half of the
+/// > block size.
+const SEMIBLOCK_SIZE: usize = 8;
+
 /// Size of an AES-KW initialization vector in bytes.
-pub const IV_LEN: usize = 8;
+pub const IV_LEN: usize = SEMIBLOCK_SIZE;
 
 /// Default Initial Value as defined in RFC3394 § 2.2.3.1.
 ///
@@ -114,7 +122,7 @@ where
     /// The `out` buffer will be overwritten, and must be exactly [`IV_LEN`]
     /// bytes (i.e. 8 bytes) longer than the length of `data`.
     pub fn wrap(&self, data: &[u8], out: &mut [u8]) -> Result<()> {
-        if data.len() % 8 != 0 {
+        if data.len() % SEMIBLOCK_SIZE != 0 {
             return Err(Error::InvalidDataLength);
         }
 
@@ -176,18 +184,20 @@ where
     /// The `out` buffer will be overwritten, and must be exactly [`IV_LEN`]
     /// bytes (i.e. 8 bytes) shorter than the length of `data`.
     pub fn unwrap(&self, data: &[u8], out: &mut [u8]) -> Result<()> {
-        if data.len() % 8 != 0 {
+        if data.len() % SEMIBLOCK_SIZE != 0 {
             return Err(Error::InvalidDataLength);
         }
 
         // 0) Prepare inputs
 
-        let n = (data.len() / 8)
+        let n = (data.len() / SEMIBLOCK_SIZE)
             .checked_sub(1)
             .ok_or(Error::InvalidDataLength)?;
 
-        if out.len() != n * 8 {
-            return Err(Error::InvalidOutputSize { expected: n * 8 });
+        if out.len() != n * SEMIBLOCK_SIZE {
+            return Err(Error::InvalidOutputSize {
+                expected: n * SEMIBLOCK_SIZE,
+            });
         }
 
         // 1) Initialize variables
@@ -201,7 +211,7 @@ where
         // 2) calculate intermediate values
 
         for j in (0..=5).rev() {
-            for (i, chunk) in out.chunks_mut(8).enumerate().rev() {
+            for (i, chunk) in out.chunks_mut(SEMIBLOCK_SIZE).enumerate().rev() {
                 // A ^ t
                 let t = (n * j + (i + 1)) as u64;
                 for (ai, ti) in block[..IV_LEN].iter_mut().zip(&t.to_be_bytes()) {
