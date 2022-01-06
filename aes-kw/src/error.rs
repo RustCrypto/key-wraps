@@ -7,14 +7,20 @@ pub type Result<T> = core::result::Result<T, Error>;
 #[derive(Debug)]
 pub enum Error {
     /// Input data length invalid.
-    InvalidDataLength,
-    /// Invalid kek size.
-    InvalidKekSize(usize),
+    InvalidDataSize,
+
+    /// Invalid KEK size.
+    InvalidKekSize {
+        /// KEK size provided in bytes (expected 8, 12, or 24).
+        size: usize,
+    },
+
     /// Output buffer size invalid.
     InvalidOutputSize {
         /// Expected size in bytes.
         expected: usize,
     },
+
     /// Integrity check did not pass.
     IntegrityCheckFailed,
 }
@@ -22,9 +28,9 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::InvalidDataLength => write!(f, "data must be a multiple of 64 bits"),
-            Error::InvalidKekSize(actual_size) => {
-                write!(f, "invalid aes kek size: {}", actual_size)
+            Error::InvalidDataSize => write!(f, "data must be a multiple of 64 bits"),
+            Error::InvalidKekSize { size } => {
+                write!(f, "invalid AES KEK size: {}", size)
             }
             Error::InvalidOutputSize { expected } => {
                 write!(f, "invalid output buffer size: expected {}", expected)

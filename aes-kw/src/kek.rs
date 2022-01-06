@@ -102,7 +102,7 @@ where
         if value.len() == Aes::KeySize::to_usize() {
             Ok(Kek::new(GenericArray::from_slice(value)))
         } else {
-            Err(Error::InvalidKekSize(value.len() * 8))
+            Err(Error::InvalidKekSize { size: value.len() })
         }
     }
 }
@@ -123,7 +123,7 @@ where
     /// bytes (i.e. 8 bytes) longer than the length of `data`.
     pub fn wrap(&self, data: &[u8], out: &mut [u8]) -> Result<()> {
         if data.len() % SEMIBLOCK_SIZE != 0 {
-            return Err(Error::InvalidDataLength);
+            return Err(Error::InvalidDataSize);
         }
 
         if out.len() != data.len() + IV_LEN {
@@ -185,14 +185,14 @@ where
     /// bytes (i.e. 8 bytes) shorter than the length of `data`.
     pub fn unwrap(&self, data: &[u8], out: &mut [u8]) -> Result<()> {
         if data.len() % SEMIBLOCK_SIZE != 0 {
-            return Err(Error::InvalidDataLength);
+            return Err(Error::InvalidDataSize);
         }
 
         // 0) Prepare inputs
 
         let n = (data.len() / SEMIBLOCK_SIZE)
             .checked_sub(1)
-            .ok_or(Error::InvalidDataLength)?;
+            .ok_or(Error::InvalidDataSize)?;
 
         if out.len() != n * SEMIBLOCK_SIZE {
             return Err(Error::InvalidOutputSize {
@@ -248,7 +248,7 @@ where
         let out_len = data
             .len()
             .checked_sub(IV_LEN)
-            .ok_or(Error::InvalidDataLength)?;
+            .ok_or(Error::InvalidDataSize)?;
 
         let mut out = vec![0u8; out_len];
         self.unwrap(data, &mut out)?;
