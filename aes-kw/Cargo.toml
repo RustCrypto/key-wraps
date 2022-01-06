@@ -14,9 +14,7 @@ rust-version = "1.56"
 
 [dependencies]
 aes = "0.7"
-byteorder = "1.4"
 generic-array = "0.14"
-lazy_static = "1.2.0"
 
 [dev-dependencies]
 hex-literal = "0.3"

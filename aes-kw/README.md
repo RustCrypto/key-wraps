@@ -14,17 +14,18 @@ The most common way to use KW is as follows: you provide the Key Wrapping Key
 and the key-to-be-wrapped, then wrap it, or provide a wrapped-key and unwrap it.
 
 ```rust
-use aes_kw::*;
+use aes_kw::Kek;
 use hex_literal::hex;
-use std::{assert_eq,assert};
+use std::{assert_eq, assert};
+use std::convert::TryFrom;
 
-let kek = hex!("000102030405060708090A0B0C0D0E0F");
+let kek = Kek::from(hex!("000102030405060708090A0B0C0D0E0F"));
 let input_key = hex!("00112233445566778899AABBCCDDEEFF");
 
-let wrapped_key = wrap(&kek, &input_key).unwrap();
+let wrapped_key = kek.wrap(&input_key).unwrap();
 assert_eq!(wrapped_key, hex!("1FA68B0A8112B447AEF34BD8FB5A7B829D3E862371D2CFE5"));
 
-let unwrapped_key = unwrap(&kek, &wrapped_key);
+let unwrapped_key = kek.unwrap(&wrapped_key);
 
 match unwrapped_key {
   Ok(unwrapped_key) => {
