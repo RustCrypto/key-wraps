@@ -1,14 +1,35 @@
+use crate::{Error, Result};
 use aes::cipher::{BlockDecrypt, BlockEncrypt, NewBlockCipher};
 use aes::BlockCipher;
 use generic_array::typenum::{Unsigned, U16, U24, U32};
 use generic_array::GenericArray;
 
-const IV_LEN: usize = 8;
-const IV: [u8; IV_LEN] = [0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6];
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
 
-use crate::Error;
+/// Size of an AES-KW initialization vector in bytes.
+pub const IV_LEN: usize = 8;
 
-/// A KEK that can be used to wrap and unwrap.
+/// Default Initial Value as defined in RFC3394 § 2.2.3.1.
+///
+/// <https://datatracker.ietf.org/doc/html/rfc3394#section-2.2.3.1>
+///
+/// ```text
+/// The default initial value (IV) is defined to be the hexadecimal
+/// constant:
+///
+///     A[0] = IV = A6A6A6A6A6A6A6A6
+///
+/// The use of a constant as the IV supports a strong integrity check on
+/// the key data during the period that it is wrapped.  If unwrapping
+/// produces A[0] = A6A6A6A6A6A6A6A6, then the chance that the key data
+/// is corrupt is 2^-64.  If unwrapping produces A[0] any other value,
+/// then the unwrap must return an error and not return any key data.
+/// ```
+pub const IV: [u8; IV_LEN] = [0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6];
+
+/// A Key-Encrypting-Key (KEK) that can be used to wrap and unwrap other
+/// keys.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Kek<Aes>
 where
@@ -18,49 +39,58 @@ where
     cipher: Aes,
 }
 
-impl From<GenericArray<u8, U16>> for Kek<aes::Aes128> {
+/// AES-128 KEK
+pub type KekAes128 = Kek<aes::Aes128>;
+
+/// AES-192 KEK
+pub type KekAes192 = Kek<aes::Aes192>;
+
+/// AES-256 KEK
+pub type KekAes256 = Kek<aes::Aes256>;
+
+impl From<GenericArray<u8, U16>> for KekAes128 {
     fn from(kek: GenericArray<u8, U16>) -> Self {
         Kek::new(&kek)
     }
 }
 
-impl From<GenericArray<u8, U24>> for Kek<aes::Aes192> {
+impl From<GenericArray<u8, U24>> for KekAes192 {
     fn from(kek: GenericArray<u8, U24>) -> Self {
         Kek::new(&kek)
     }
 }
 
-impl From<GenericArray<u8, U32>> for Kek<aes::Aes256> {
+impl From<GenericArray<u8, U32>> for KekAes256 {
     fn from(kek: GenericArray<u8, U32>) -> Self {
         Kek::new(&kek)
     }
 }
 
-impl From<[u8; 16]> for Kek<aes::Aes128> {
+impl From<[u8; 16]> for KekAes128 {
     fn from(kek: [u8; 16]) -> Self {
         Kek::new(&kek.into())
     }
 }
 
-impl From<[u8; 24]> for Kek<aes::Aes192> {
+impl From<[u8; 24]> for KekAes192 {
     fn from(kek: [u8; 24]) -> Self {
         Kek::new(&kek.into())
     }
 }
 
-impl From<[u8; 32]> for Kek<aes::Aes256> {
+impl From<[u8; 32]> for KekAes256 {
     fn from(kek: [u8; 32]) -> Self {
         Kek::new(&kek.into())
     }
 }
 
-impl<Aes> std::convert::TryFrom<&[u8]> for Kek<Aes>
+impl<Aes> TryFrom<&[u8]> for Kek<Aes>
 where
     Aes: NewBlockCipher + BlockCipher<BlockSize = U16> + BlockEncrypt + BlockDecrypt,
 {
     type Error = Error;
 
-    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+    fn try_from(value: &[u8]) -> Result<Self> {
         if value.len() == Aes::KeySize::to_usize() {
             Ok(Kek::new(GenericArray::from_slice(value)))
         } else {
@@ -80,9 +110,18 @@ where
     }
 
     /// AES Key Wrap, as defined in RFC 3394.
-    pub fn wrap(&self, data: &[u8]) -> Result<Vec<u8>, Error> {
+    ///
+    /// The `out` buffer will be overwritten, and must be exactly [`IV_LEN`]
+    /// bytes (i.e. 8 bytes) longer than the length of `data`.
+    pub fn wrap(&self, data: &[u8], out: &mut [u8]) -> Result<()> {
         if data.len() % 8 != 0 {
             return Err(Error::InvalidDataLength);
+        }
+
+        if out.len() != data.len() + IV_LEN {
+            return Err(Error::InvalidOutputSize {
+                expected: data.len() + IV_LEN,
+            });
         }
 
         // 0) Prepare inputs
@@ -97,8 +136,6 @@ where
         block[..IV_LEN].copy_from_slice(&IV);
 
         // 2) calculate intermediate values
-
-        let mut out = vec![0u8; data.len() + IV_LEN];
         out[IV_LEN..].copy_from_slice(data);
 
         for j in 0..=5 {
@@ -122,18 +159,36 @@ where
         // 3) output the results
         out[..IV_LEN].copy_from_slice(&block[..IV_LEN]);
 
+        Ok(())
+    }
+
+    /// Computes [`Self::wrap`], allocating a [`Vec`] for the return value.
+    #[cfg(feature = "alloc")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    pub fn wrap_vec(&self, data: &[u8]) -> Result<Vec<u8>> {
+        let mut out = vec![0u8; data.len() + IV_LEN];
+        self.wrap(data, &mut out)?;
         Ok(out)
     }
 
     /// AES Key Unwrap, as defined in RFC 3394.
-    pub fn unwrap(&self, data: &[u8]) -> Result<Vec<u8>, Error> {
+    ///
+    /// The `out` buffer will be overwritten, and must be exactly [`IV_LEN`]
+    /// bytes (i.e. 8 bytes) shorter than the length of `data`.
+    pub fn unwrap(&self, data: &[u8], out: &mut [u8]) -> Result<()> {
         if data.len() % 8 != 0 {
             return Err(Error::InvalidDataLength);
         }
 
         // 0) Prepare inputs
 
-        let n = (data.len() / 8) - 1;
+        let n = (data.len() / 8)
+            .checked_sub(1)
+            .ok_or(Error::InvalidDataLength)?;
+
+        if out.len() != n * 8 {
+            return Err(Error::InvalidOutputSize { expected: n * 8 });
+        }
 
         // 1) Initialize variables
 
@@ -141,7 +196,6 @@ where
         block[..IV_LEN].copy_from_slice(&data[..IV_LEN]);
 
         //   for i = 1 to n: R[i] = C[i]
-        let mut out = vec![0u8; n * 8];
         out.copy_from_slice(&data[IV_LEN..]);
 
         // 2) calculate intermediate values
@@ -171,9 +225,23 @@ where
         // 3) output the results
 
         if block[..IV_LEN] == IV[..] {
-            Ok(out)
+            Ok(())
         } else {
             Err(Error::IntegrityCheckFailed)
         }
+    }
+
+    /// Computes [`Self::unwrap`], allocating a [`Vec`] for the return value.
+    #[cfg(feature = "alloc")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    pub fn unwrap_vec(&self, data: &[u8]) -> Result<Vec<u8>> {
+        let out_len = data
+            .len()
+            .checked_sub(IV_LEN)
+            .ok_or(Error::InvalidDataLength)?;
+
+        let mut out = vec![0u8; out_len];
+        self.unwrap(data, &mut out)?;
+        Ok(out)
     }
 }
