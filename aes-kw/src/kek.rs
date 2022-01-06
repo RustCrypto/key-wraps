@@ -1,6 +1,6 @@
 use aes::cipher::{BlockDecrypt, BlockEncrypt, NewBlockCipher};
 use aes::BlockCipher;
-use generic_array::typenum::{U16, U24, U32};
+use generic_array::typenum::{Unsigned, U16, U24, U32};
 use generic_array::GenericArray;
 
 const IV_LEN: usize = 8;
@@ -61,27 +61,10 @@ where
     type Error = Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        match value.len() * 8 {
-            128 => Ok(Kek::new(GenericArray::from_slice(value))),
-            192 => Ok(Kek::new(GenericArray::from_slice(value))),
-            256 => Ok(Kek::new(GenericArray::from_slice(value))),
-            v => Err(Error::InvalidKekSize(v)),
-        }
-    }
-}
-
-impl<Aes> std::convert::TryFrom<Vec<u8>> for Kek<Aes>
-where
-    Aes: NewBlockCipher + BlockCipher<BlockSize = U16> + BlockEncrypt + BlockDecrypt,
-{
-    type Error = Error;
-
-    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
-        match value.len() * 8 {
-            128 => Ok(Kek::new(GenericArray::from_slice(&value))),
-            192 => Ok(Kek::new(GenericArray::from_slice(&value))),
-            256 => Ok(Kek::new(GenericArray::from_slice(&value))),
-            v => Err(Error::InvalidKekSize(v)),
+        if value.len() == Aes::KeySize::to_usize() {
+            Ok(Kek::new(GenericArray::from_slice(value)))
+        } else {
+            Err(Error::InvalidKekSize(value.len() * 8))
         }
     }
 }
