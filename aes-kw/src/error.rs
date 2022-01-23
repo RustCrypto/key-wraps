@@ -28,7 +28,7 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::InvalidDataSize => write!(f, "data must be a multiple of 64 bits"),
+            Error::InvalidDataSize => write!(f, "data must be a multiple of 64 bits for AES-KW and less than 2^32 bytes for AES-KWP"),
             Error::InvalidKekSize { size } => {
                 write!(f, "invalid AES KEK size: {}", size)
             }

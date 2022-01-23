@@ -1,12 +1,12 @@
 [package]
 name = "aes-kw"
 version = "0.1.0" # Also update html_root_url in lib.rs when bumping this
-description = "NIST 800-38F AES Key Wrapping Method (KW)"
+description = "NIST 800-38F AES Key Wrap (KW) and Key Wrap with Padding (KWP) modes"
 authors = ["RustCrypto Developers"]
 license = "MIT OR Apache-2.0"
 homepage = "https://github.com/RustCrypto/key-wraps/"
 repository = "https://github.com/RustCrypto/key-wraps/tree/aes-kw"
-keywords = ["crypto", "AES-KW", "KW"]
+keywords = ["crypto", "AES-KW", "KW", "AES-KWP", "KWP"]
 categories = ["cryptography", "no-std"]
 readme = "README.md"
 edition = "2021"

@@ -15,10 +15,13 @@ use alloc::vec::Vec;
 /// > block size.
 const SEMIBLOCK_SIZE: usize = 8;
 
-/// Size of an AES-KW initialization vector in bytes.
+/// Maximum length of the AES-KWP input data (2^32 bytes).
+pub const KWP_MAX_LEN: usize = u32::MAX as usize;
+
+/// Size of an AES-KW and AES-KWP initialization vector in bytes.
 pub const IV_LEN: usize = SEMIBLOCK_SIZE;
 
-/// Default Initial Value as defined in RFC3394 § 2.2.3.1.
+/// Default Initial Value for AES-KW as defined in RFC3394 § 2.2.3.1.
 ///
 /// <https://datatracker.ietf.org/doc/html/rfc3394#section-2.2.3.1>
 ///
@@ -35,6 +38,18 @@ pub const IV_LEN: usize = SEMIBLOCK_SIZE;
 /// then the unwrap must return an error and not return any key data.
 /// ```
 pub const IV: [u8; IV_LEN] = [0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6];
+
+/// Alternative Initial Value constant prefix for AES-KWP as defined in
+/// RFC3394 § 3.
+///
+/// <https://datatracker.ietf.org/doc/html/rfc5649#section-3>
+///
+/// ```text
+/// The Alternative Initial Value (AIV) required by this specification is
+//  a 32-bit constant concatenated to a 32-bit MLI.  The constant is (in
+//  hexadecimal) A65959A6 and occupies the high-order half of the AIV.
+/// ```
+pub const KWP_IV_PREFIX: [u8; IV_LEN / 2] = [0xA6, 0x59, 0x59, 0xA6];
 
 /// A Key-Encrypting-Key (KEK) that can be used to wrap and unwrap other
 /// keys.
@@ -117,6 +132,54 @@ where
         Kek { cipher }
     }
 
+    /// Very similar to the W(S) function defined by NIST in SP 800-38F,
+    /// Section 6.1
+    fn w(&self, n: usize, block: &mut GenericArray<u8, Aes::BlockSize>, out: &mut [u8]) {
+        for j in 0..=5 {
+            for (i, chunk) in out.chunks_mut(SEMIBLOCK_SIZE).skip(1).enumerate() {
+                // A | R[i]
+                block[IV_LEN..].copy_from_slice(chunk);
+                // B = AES(K, ..)
+                self.cipher.encrypt_block(block);
+
+                // A = MSB(64, B) ^ t
+                let t = (n * j + (i + 1)) as u64;
+                for (ai, ti) in block[..IV_LEN].iter_mut().zip(&t.to_be_bytes()) {
+                    *ai ^= ti;
+                }
+
+                // R[i] = LSB(64, B)
+                chunk.copy_from_slice(&block[IV_LEN..]);
+            }
+        }
+    }
+
+    /// Very similar to the W^-1(S) function defined by NIST in SP 800-38F,
+    /// Section 6.1
+    fn w_inverse(&self, n: usize, block: &mut GenericArray<u8, Aes::BlockSize>, out: &mut [u8]) {
+        for j in (0..=5).rev() {
+            for (i, chunk) in out.chunks_mut(SEMIBLOCK_SIZE).enumerate().rev() {
+                // A ^ t
+                let t = (n * j + (i + 1)) as u64;
+                for (ai, ti) in block[..IV_LEN].iter_mut().zip(&t.to_be_bytes()) {
+                    *ai ^= ti;
+                }
+
+                // (A ^ t) | R[i]
+                block[IV_LEN..].copy_from_slice(chunk);
+
+                // B = AES-1(K, ..)
+                self.cipher.decrypt_block(block);
+
+                // A = MSB(64, B)
+                // already set
+
+                // R[i] = LSB(64, B)
+                chunk.copy_from_slice(&block[IV_LEN..]);
+            }
+        }
+    }
+
     /// AES Key Wrap, as defined in RFC 3394.
     ///
     /// The `out` buffer will be overwritten, and must be exactly [`IV_LEN`]
@@ -146,23 +209,7 @@ where
         // 2) Calculate intermediate values
         out[IV_LEN..].copy_from_slice(data);
 
-        for j in 0..=5 {
-            for (i, chunk) in out[IV_LEN..].chunks_mut(8).enumerate() {
-                // A | R[i]
-                block[IV_LEN..].copy_from_slice(chunk);
-                // B = AES(K, ..)
-                self.cipher.encrypt_block(&mut block);
-
-                // A = MSB(64, B) ^ t
-                let t = (n * j + (i + 1)) as u64;
-                for (ai, ti) in block[..IV_LEN].iter_mut().zip(&t.to_be_bytes()) {
-                    *ai ^= ti;
-                }
-
-                // R[i] = LSB(64, B)
-                chunk.copy_from_slice(&block[IV_LEN..]);
-            }
-        }
+        self.w(n, &mut block, out);
 
         // 3) Output the results
         out[..IV_LEN].copy_from_slice(&block[..IV_LEN]);
@@ -210,27 +257,7 @@ where
 
         // 2) Calculate intermediate values
 
-        for j in (0..=5).rev() {
-            for (i, chunk) in out.chunks_mut(SEMIBLOCK_SIZE).enumerate().rev() {
-                // A ^ t
-                let t = (n * j + (i + 1)) as u64;
-                for (ai, ti) in block[..IV_LEN].iter_mut().zip(&t.to_be_bytes()) {
-                    *ai ^= ti;
-                }
-
-                // (A ^ t) | R[i]
-                block[IV_LEN..].copy_from_slice(chunk);
-
-                // B = AES-1(K, ..)
-                self.cipher.decrypt_block(&mut block);
-
-                // A = MSB(64, B)
-                // already set
-
-                // R[i] = LSB(64, B)
-                chunk.copy_from_slice(&block[IV_LEN..]);
-            }
-        }
+        self.w_inverse(n, &mut block, out);
 
         // 3) Output the results
 
@@ -252,6 +279,167 @@ where
 
         let mut out = vec![0u8; out_len];
         self.unwrap(data, &mut out)?;
+        Ok(out)
+    }
+
+    /// AES Key Wrap with Padding, as defined in RFC 5649.
+    ///
+    ///
+    /// The `out` buffer will be overwritten, and must be the smallest
+    /// multiple of [`SEMIBLOCK_SIZE`] (i.e. 8) which is at least [`IV_LEN`]
+    /// bytes (i.e. 8 bytes) longer than the length of `data`.
+    pub fn wrap_with_padding(&self, data: &[u8], out: &mut [u8]) -> Result<()> {
+        if data.len() > KWP_MAX_LEN {
+            return Err(Error::InvalidDataSize);
+        }
+
+        // 0) Prepare inputs
+
+        // number of 64 bit blocks in the input data (padded)
+        let n = (data.len() + SEMIBLOCK_SIZE - 1) / SEMIBLOCK_SIZE;
+
+        if out.len() != n * SEMIBLOCK_SIZE + IV_LEN {
+            return Err(Error::InvalidOutputSize {
+                expected: n * SEMIBLOCK_SIZE + IV_LEN,
+            });
+        }
+
+        // 32-bit MLI equal to the number of bytes in the input data, big endian
+        let mli = (data.len() as u32).to_be_bytes();
+
+        // 2) Wrapping
+
+        // 2.1) Initialize variables
+
+        // Set A to the AIV
+        let mut block = GenericArray::<u8, Aes::BlockSize>::default();
+        block[..IV_LEN / 2].copy_from_slice(&KWP_IV_PREFIX);
+        block[IV_LEN / 2..IV_LEN].copy_from_slice(&mli);
+
+        // If n is 1, the plaintext is encrypted as a single AES block
+        if n == 1 {
+            // 1) Append padding
+
+            // GenericArrays should be zero by default, but zeroize again to be sure
+            for i in data.len()..n * SEMIBLOCK_SIZE {
+                block[IV_LEN + i] = 0;
+            }
+
+            block[IV_LEN..IV_LEN + data.len()].copy_from_slice(data);
+
+            self.cipher.encrypt_block(&mut block);
+            out.copy_from_slice(&block);
+        } else {
+            // 1) Append padding
+
+            // Don't trust the caller to provide a zeroized out buffer, zeroize again to be sure
+            for i in data.len()..n * SEMIBLOCK_SIZE {
+                out[IV_LEN + i] = 0;
+            }
+
+            // 2.2) Calculate intermediate values
+            out[IV_LEN..IV_LEN + data.len()].copy_from_slice(data);
+
+            self.w(n, &mut block, out);
+
+            // 2.3) Output the results
+            out[..IV_LEN].copy_from_slice(&block[..IV_LEN]);
+        }
+
+        Ok(())
+    }
+
+    /// Computes [`Self::wrap`], allocating a [`Vec`] for the return value.
+    #[cfg(feature = "alloc")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    pub fn wrap_with_padding_vec(&self, data: &[u8]) -> Result<Vec<u8>> {
+        let n = (data.len() + SEMIBLOCK_SIZE - 1) / SEMIBLOCK_SIZE;
+        let mut out = vec![0u8; n * SEMIBLOCK_SIZE + IV_LEN];
+        self.wrap_with_padding(data, &mut out)?;
+        Ok(out)
+    }
+
+    /// AES Key Wrap with Padding, as defined in RFC 5649.
+    ///
+    /// The `out` buffer will be overwritten, and must be exactly [`IV_LEN`]
+    /// bytes (i.e. 8 bytes) shorter than the length of `data`.
+    /// This method returns a slice of `out`, truncated to the appropriate
+    /// length by removing the padding.
+    pub fn unwrap_with_padding<'a>(&self, data: &[u8], out: &'a mut [u8]) -> Result<&'a [u8]> {
+        if data.len() % SEMIBLOCK_SIZE != 0 {
+            return Err(Error::InvalidDataSize);
+        }
+
+        // 0) Prepare inputs
+
+        let n = (data.len() / SEMIBLOCK_SIZE)
+            .checked_sub(1)
+            .ok_or(Error::InvalidDataSize)?;
+
+        if out.len() != n * SEMIBLOCK_SIZE {
+            return Err(Error::InvalidOutputSize {
+                expected: n * SEMIBLOCK_SIZE,
+            });
+        }
+
+        // 1) Key unwrapping
+
+        // 1.1) Initialize variables
+
+        let mut block = GenericArray::<u8, Aes::BlockSize>::default();
+
+        // If n is 1, the plaintext is encrypted as a single AES block
+        if n == 1 {
+            block.copy_from_slice(data);
+
+            self.cipher.decrypt_block(&mut block);
+            out.copy_from_slice(&block[IV_LEN..]);
+        } else {
+            block[..IV_LEN].copy_from_slice(&data[..IV_LEN]);
+
+            //   for i = 1 to n: R[i] = C[i]
+            out.copy_from_slice(&data[IV_LEN..]);
+
+            // 1.2) Calculate intermediate values
+
+            self.w_inverse(n, &mut block, out);
+        }
+
+        // 2) AIV verification
+
+        // Checks as defined in RFC5649 § 3
+
+        if block[..IV_LEN / 2] != KWP_IV_PREFIX {
+            return Err(Error::IntegrityCheckFailed);
+        }
+
+        let mli = u32::from_be_bytes(block[IV_LEN / 2..IV_LEN].try_into().unwrap()) as usize;
+        if !(SEMIBLOCK_SIZE * (n - 1) < mli && mli <= SEMIBLOCK_SIZE * n) {
+            return Err(Error::IntegrityCheckFailed);
+        }
+
+        let b = SEMIBLOCK_SIZE * n - mli;
+        if !out.iter().rev().take(b).all(|&x| x == 0) {
+            return Err(Error::IntegrityCheckFailed);
+        }
+
+        // 3) Output the results
+
+        Ok(&out[..mli])
+    }
+
+    /// Computes [`Self::unwrap`], allocating a [`Vec`] for the return value.
+    #[cfg(feature = "alloc")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    pub fn unwrap_with_padding_vec(&self, data: &[u8]) -> Result<Vec<u8>> {
+        let out_len = data
+            .len()
+            .checked_sub(IV_LEN)
+            .ok_or(Error::InvalidDataSize)?;
+
+        let mut out = vec![0u8; out_len];
+        let out_len = self.unwrap_with_padding(data, &mut out)?.len();
+        out.truncate(out_len);
         Ok(out)
     }
 }
