@@ -112,6 +112,7 @@ mod tests {
     fn error_invalid_output_size() {
         let kek = hex!("000102030405060708090A0B0C0D0E0F");
         let input = hex!("00112233445566778899AABBCCDDEEFF");
+        let output = hex!("1FA68B0A8112B447AEF34BD8FB5A7B829D3E862371D2CFE5");
 
         let kek = Kek::<aes::Aes128>::from(kek);
 
@@ -122,6 +123,15 @@ mod tests {
         assert!(matches!(
             result.unwrap_err(),
             Error::InvalidOutputSize { expected: 24 }
+        ));
+
+        let mut unwrapped = [0u8; 15];
+        let result = kek.unwrap(&output, &mut unwrapped);
+
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            Error::InvalidOutputSize { expected: 16 }
         ));
     }
 
