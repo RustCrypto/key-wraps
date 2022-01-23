@@ -143,7 +143,7 @@ where
         let mut block = GenericArray::<u8, Aes::BlockSize>::default();
         block[..IV_LEN].copy_from_slice(&IV);
 
-        // 2) calculate intermediate values
+        // 2) Calculate intermediate values
         out[IV_LEN..].copy_from_slice(data);
 
         for j in 0..=5 {
@@ -164,7 +164,7 @@ where
             }
         }
 
-        // 3) output the results
+        // 3) Output the results
         out[..IV_LEN].copy_from_slice(&block[..IV_LEN]);
 
         Ok(())
@@ -208,7 +208,7 @@ where
         //   for i = 1 to n: R[i] = C[i]
         out.copy_from_slice(&data[IV_LEN..]);
 
-        // 2) calculate intermediate values
+        // 2) Calculate intermediate values
 
         for j in (0..=5).rev() {
             for (i, chunk) in out.chunks_mut(SEMIBLOCK_SIZE).enumerate().rev() {
@@ -232,7 +232,7 @@ where
             }
         }
 
-        // 3) output the results
+        // 3) Output the results
 
         if block[..IV_LEN] == IV[..] {
             Ok(())
