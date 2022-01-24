@@ -90,6 +90,6 @@ dual licensed as above, without any additional terms or conditions.
 [//]: # (links)
 
 [NIST AES-KW Key Wrap]: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38F.pdf
-[NIST AES-KW Key Wrap with Padding]: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38F.pdf
+[NIST AES-KWP Key Wrap with Padding]: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38F.pdf
 [RFC3394]: https://datatracker.ietf.org/doc/html/rfc3394
 [RFC5649]: https://datatracker.ietf.org/doc/html/rfc5649
