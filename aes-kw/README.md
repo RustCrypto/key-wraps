@@ -6,8 +6,9 @@
 ![Rust Version][rustc-image]
 [![Build Status][build-image]][build-link]
 
-Pure Rust implementation of the [NIST AES-KW Key Wrapping Method] also
-described in [RFC3394].
+Pure Rust implementation of the [NIST AES-KW Key Wrap] and
+[NIST AES-KWP Key Wrap with Padding] modes also described in [RFC3394]
+and [RFC5649].
 
 ## About
 
@@ -34,6 +35,24 @@ RFC3394 § 2 describes AES-KW as follows:
 > description of the key wrap algorithm.  Therefore, in the description
 > that follows, the key wrap is described generically; no key size is
 > specified for the KEK.
+
+RFC5649 § 1 describes AES-KWP as follows:
+
+> This document specifies an extension of the Advanced Encryption
+> Standard (AES) Key Wrap algorithm \[AES-KW1, AES-KW2\].  Without this
+> extension, the input to the AES Key Wrap algorithm, called the key
+> data, must be a sequence of two or more 64-bit blocks.
+>
+> The AES Key Wrap with Padding algorithm can be used to wrap a key of
+> any practical size with an AES key.  The AES key-encryption key (KEK)
+> must be 128, 192, or 256 bits.  The input key data may be as short as
+> one octet, which will result in an output of two 64-bit blocks (or 16
+> octets).  Although the AES Key Wrap algorithm does not place a
+> maximum bound on the size of the key data that can be wrapped, this
+> extension does so.  The use of a 32-bit fixed field to carry the
+> octet length of the key data bounds the size of the input at 2^32
+> octets.  Most systems will have other factors that limit the
+> practical size of key data to much less than 2^32 octets.
 
 ## Minimum Supported Rust Version
 
@@ -70,5 +89,7 @@ dual licensed as above, without any additional terms or conditions.
 
 [//]: # (links)
 
-[NIST AES-KW Key Wrapping Method]: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38F.pdf
+[NIST AES-KW Key Wrap]: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38F.pdf
+[NIST AES-KW Key Wrap with Padding]: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38F.pdf
 [RFC3394]: https://datatracker.ietf.org/doc/html/rfc3394
+[RFC5649]: https://datatracker.ietf.org/doc/html/rfc5649
