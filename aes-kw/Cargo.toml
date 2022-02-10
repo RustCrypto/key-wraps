@@ -1,6 +1,6 @@
 [package]
 name = "aes-kw"
-version = "0.1.0" # Also update html_root_url in lib.rs when bumping this
+version = "0.2.0" # Also update html_root_url in lib.rs when bumping this
 description = "NIST 800-38F AES Key Wrap (KW) and Key Wrap with Padding (KWP) modes"
 authors = ["RustCrypto Developers"]
 license = "MIT OR Apache-2.0"
@@ -13,8 +13,7 @@ edition = "2021"
 rust-version = "1.56"
 
 [dependencies]
-aes = "0.7"
-generic-array = "0.14"
+aes = "0.8"
 
 [dev-dependencies]
 hex-literal = "0.3"
