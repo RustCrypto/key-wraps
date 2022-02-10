@@ -13,8 +13,7 @@ edition = "2021"
 rust-version = "1.56"
 
 [dependencies]
-aes = "0.7"
-generic-array = "0.14"
+aes = "0.8"
 
 [dev-dependencies]
 hex-literal = "0.3"

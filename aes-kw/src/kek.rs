@@ -1,8 +1,9 @@
 use crate::{Error, Result};
-use aes::cipher::{BlockDecrypt, BlockEncrypt, NewBlockCipher};
-use aes::BlockCipher;
-use generic_array::typenum::{Unsigned, U16, U24, U32};
-use generic_array::GenericArray;
+use aes::cipher::{
+    generic_array::GenericArray,
+    typenum::{Unsigned, U16, U24, U32},
+    BlockCipher, BlockDecrypt, BlockEncrypt, BlockSizeUser, KeyInit,
+};
 
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
@@ -56,7 +57,7 @@ pub const KWP_IV_PREFIX: [u8; IV_LEN / 2] = [0xA6, 0x59, 0x59, 0xA6];
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Kek<Aes>
 where
-    Aes: NewBlockCipher + BlockCipher<BlockSize = U16> + BlockEncrypt + BlockDecrypt,
+    Aes: KeyInit + BlockCipher + BlockSizeUser<BlockSize = U16> + BlockEncrypt + BlockDecrypt,
 {
     /// Initialized cipher
     cipher: Aes,
@@ -109,7 +110,7 @@ impl From<[u8; 32]> for KekAes256 {
 
 impl<Aes> TryFrom<&[u8]> for Kek<Aes>
 where
-    Aes: NewBlockCipher + BlockCipher<BlockSize = U16> + BlockEncrypt + BlockDecrypt,
+    Aes: KeyInit + BlockCipher + BlockSizeUser<BlockSize = U16> + BlockEncrypt + BlockDecrypt,
 {
     type Error = Error;
 
@@ -124,7 +125,7 @@ where
 
 impl<Aes> Kek<Aes>
 where
-    Aes: NewBlockCipher + BlockCipher<BlockSize = U16> + BlockEncrypt + BlockDecrypt,
+    Aes: KeyInit + BlockCipher + BlockSizeUser<BlockSize = U16> + BlockEncrypt + BlockDecrypt,
 {
     /// Constructs a new Kek based on the appropriate raw key material.
     pub fn new(key: &GenericArray<u8, Aes::KeySize>) -> Self {
