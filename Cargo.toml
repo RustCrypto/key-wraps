@@ -2,3 +2,6 @@
 members = [
     "aes-kw",
 ]
+
+[profile.dev]
+opt-level = 2
