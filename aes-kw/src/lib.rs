@@ -22,7 +22,8 @@ pub use error::{Error, Result};
 use aes::cipher::{
     generic_array::GenericArray,
     typenum::{Unsigned, U16, U24, U32},
-    BlockCipher, BlockDecrypt, BlockEncrypt, BlockSizeUser, KeyInit,
+    Block, BlockBackend, BlockCipher, BlockClosure, BlockDecrypt, BlockEncrypt, BlockSizeUser,
+    KeyInit,
 };
 
 #[cfg(feature = "alloc")]
@@ -153,54 +154,6 @@ where
         Kek { cipher }
     }
 
-    /// Very similar to the W(S) function defined by NIST in SP 800-38F,
-    /// Section 6.1
-    fn w(&self, n: usize, block: &mut GenericArray<u8, Aes::BlockSize>, out: &mut [u8]) {
-        for j in 0..=5 {
-            for (i, chunk) in out.chunks_mut(SEMIBLOCK_SIZE).skip(1).enumerate() {
-                // A | R[i]
-                block[IV_LEN..].copy_from_slice(chunk);
-                // B = AES(K, ..)
-                self.cipher.encrypt_block(block);
-
-                // A = MSB(64, B) ^ t
-                let t = (n * j + (i + 1)) as u64;
-                for (ai, ti) in block[..IV_LEN].iter_mut().zip(&t.to_be_bytes()) {
-                    *ai ^= ti;
-                }
-
-                // R[i] = LSB(64, B)
-                chunk.copy_from_slice(&block[IV_LEN..]);
-            }
-        }
-    }
-
-    /// Very similar to the W^-1(S) function defined by NIST in SP 800-38F,
-    /// Section 6.1
-    fn w_inverse(&self, n: usize, block: &mut GenericArray<u8, Aes::BlockSize>, out: &mut [u8]) {
-        for j in (0..=5).rev() {
-            for (i, chunk) in out.chunks_mut(SEMIBLOCK_SIZE).enumerate().rev() {
-                // A ^ t
-                let t = (n * j + (i + 1)) as u64;
-                for (ai, ti) in block[..IV_LEN].iter_mut().zip(&t.to_be_bytes()) {
-                    *ai ^= ti;
-                }
-
-                // (A ^ t) | R[i]
-                block[IV_LEN..].copy_from_slice(chunk);
-
-                // B = AES-1(K, ..)
-                self.cipher.decrypt_block(block);
-
-                // A = MSB(64, B)
-                // already set
-
-                // R[i] = LSB(64, B)
-                chunk.copy_from_slice(&block[IV_LEN..]);
-            }
-        }
-    }
-
     /// AES Key Wrap, as defined in RFC 3394.
     ///
     /// The `out` buffer will be overwritten, and must be exactly [`IV_LEN`]
@@ -224,13 +177,13 @@ where
         // 1) Initialize variables
 
         // Set A to the IV
-        let mut block = GenericArray::<u8, Aes::BlockSize>::default();
+        let block = &mut Block::<WCtx<'_>>::default();
         block[..IV_LEN].copy_from_slice(&IV);
 
         // 2) Calculate intermediate values
         out[IV_LEN..].copy_from_slice(data);
 
-        self.w(n, &mut block, out);
+        self.cipher.encrypt_with_backend(WCtx { n, block, out });
 
         // 3) Output the results
         out[..IV_LEN].copy_from_slice(&block[..IV_LEN]);
@@ -270,7 +223,7 @@ where
 
         // 1) Initialize variables
 
-        let mut block = GenericArray::<u8, Aes::BlockSize>::default();
+        let block = &mut Block::<WInverseCtx<'_>>::default();
         block[..IV_LEN].copy_from_slice(&data[..IV_LEN]);
 
         //   for i = 1 to n: R[i] = C[i]
@@ -278,7 +231,8 @@ where
 
         // 2) Calculate intermediate values
 
-        self.w_inverse(n, &mut block, out);
+        self.cipher
+            .decrypt_with_backend(WInverseCtx { n, block, out });
 
         // 3) Output the results
 
@@ -333,7 +287,7 @@ where
         // 2.1) Initialize variables
 
         // Set A to the AIV
-        let mut block = GenericArray::<u8, Aes::BlockSize>::default();
+        let block = &mut Block::<WCtx<'_>>::default();
         block[..IV_LEN / 2].copy_from_slice(&KWP_IV_PREFIX);
         block[IV_LEN / 2..IV_LEN].copy_from_slice(&mli);
 
@@ -348,8 +302,8 @@ where
 
             block[IV_LEN..IV_LEN + data.len()].copy_from_slice(data);
 
-            self.cipher.encrypt_block(&mut block);
-            out.copy_from_slice(&block);
+            self.cipher.encrypt_block(block);
+            out.copy_from_slice(block);
         } else {
             // 1) Append padding
 
@@ -361,7 +315,7 @@ where
             // 2.2) Calculate intermediate values
             out[IV_LEN..IV_LEN + data.len()].copy_from_slice(data);
 
-            self.w(n, &mut block, out);
+            self.cipher.encrypt_with_backend(WCtx { n, block, out });
 
             // 2.3) Output the results
             out[..IV_LEN].copy_from_slice(&block[..IV_LEN]);
@@ -407,13 +361,13 @@ where
 
         // 1.1) Initialize variables
 
-        let mut block = GenericArray::<u8, Aes::BlockSize>::default();
+        let block = &mut Block::<WInverseCtx<'_>>::default();
 
         // If n is 1, the plaintext is encrypted as a single AES block
         if n == 1 {
             block.copy_from_slice(data);
 
-            self.cipher.decrypt_block(&mut block);
+            self.cipher.decrypt_block(block);
             out.copy_from_slice(&block[IV_LEN..]);
         } else {
             block[..IV_LEN].copy_from_slice(&data[..IV_LEN]);
@@ -423,7 +377,8 @@ where
 
             // 1.2) Calculate intermediate values
 
-            self.w_inverse(n, &mut block, out);
+            self.cipher
+                .decrypt_with_backend(WInverseCtx { n, block, out });
         }
 
         // 2) AIV verification
@@ -462,5 +417,79 @@ where
         let out_len = self.unwrap_with_padding(data, &mut out)?.len();
         out.truncate(out_len);
         Ok(out)
+    }
+}
+
+struct WCtx<'a> {
+    n: usize,
+    block: &'a mut Block<Self>,
+    out: &'a mut [u8],
+}
+
+impl<'a> BlockSizeUser for WCtx<'a> {
+    type BlockSize = U16;
+}
+
+/// Very similar to the W(S) function defined by NIST in SP 800-38F,
+/// Section 6.1
+impl<'a> BlockClosure for WCtx<'a> {
+    #[inline(always)]
+    fn call<B: BlockBackend<BlockSize = Self::BlockSize>>(self, backend: &mut B) {
+        for j in 0..=5 {
+            for (i, chunk) in self.out.chunks_mut(SEMIBLOCK_SIZE).skip(1).enumerate() {
+                // A | R[i]
+                self.block[IV_LEN..].copy_from_slice(chunk);
+                // B = AES(K, ..)
+                backend.proc_block(self.block.into());
+
+                // A = MSB(64, B) ^ t
+                let t = (self.n * j + (i + 1)) as u64;
+                for (ai, ti) in self.block[..IV_LEN].iter_mut().zip(&t.to_be_bytes()) {
+                    *ai ^= ti;
+                }
+
+                // R[i] = LSB(64, B)
+                chunk.copy_from_slice(&self.block[IV_LEN..]);
+            }
+        }
+    }
+}
+
+struct WInverseCtx<'a> {
+    n: usize,
+    block: &'a mut Block<Self>,
+    out: &'a mut [u8],
+}
+
+impl<'a> BlockSizeUser for WInverseCtx<'a> {
+    type BlockSize = U16;
+}
+
+/// Very similar to the W^-1(S) function defined by NIST in SP 800-38F,
+/// Section 6.1
+impl<'a> BlockClosure for WInverseCtx<'a> {
+    #[inline(always)]
+    fn call<B: BlockBackend<BlockSize = Self::BlockSize>>(self, backend: &mut B) {
+        for j in (0..=5).rev() {
+            for (i, chunk) in self.out.chunks_mut(SEMIBLOCK_SIZE).enumerate().rev() {
+                // A ^ t
+                let t = (self.n * j + (i + 1)) as u64;
+                for (ai, ti) in self.block[..IV_LEN].iter_mut().zip(&t.to_be_bytes()) {
+                    *ai ^= ti;
+                }
+
+                // (A ^ t) | R[i]
+                self.block[IV_LEN..].copy_from_slice(chunk);
+
+                // B = AES-1(K, ..)
+                backend.proc_block(self.block.into());
+
+                // A = MSB(64, B)
+                // already set
+
+                // R[i] = LSB(64, B)
+                chunk.copy_from_slice(&self.block[IV_LEN..]);
+            }
+        }
     }
 }
