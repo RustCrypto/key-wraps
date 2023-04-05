@@ -16,7 +16,7 @@ rust-version = "1.56"
 aes = "0.8.2"
 
 [dev-dependencies]
-hex-literal = "0.3"
+hex-literal = "0.4"
 
 [features]
 alloc = []
