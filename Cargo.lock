@@ -23,6 +23,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "belt-block"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d9aa1eef3994e2ccd304a78fe3fea4a73e5792007f85f09b79bb82143ca5f82b"
+dependencies = [
+ "cipher",
+]
+
+[[package]]
+name = "belt-kwp"
+version = "0.0.0"
+dependencies = [
+ "belt-block",
+ "hex-literal",
+]
+
+[[package]]
 name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
