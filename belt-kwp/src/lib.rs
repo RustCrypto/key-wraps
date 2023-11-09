@@ -1,8 +1,8 @@
 #![no_std]
 #![doc = include_str!("../README.md")]
 #![doc(
-html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/6ee8e381/logo.svg",
-html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/6ee8e381/logo.svg"
+    html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/6ee8e381/logo.svg",
+    html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/6ee8e381/logo.svg"
 )]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![forbid(unsafe_code)]
@@ -21,8 +21,9 @@ extern crate std;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 use belt_block::{
+    belt_wblock_dec, belt_wblock_enc,
     cipher::{consts::U32, generic_array::GenericArray},
-    to_u32, belt_wblock_dec, belt_wblock_enc,
+    to_u32,
 };
 
 /// Block size for BelT-KWP
