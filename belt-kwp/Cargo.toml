@@ -13,7 +13,7 @@ edition = "2021"
 rust-version = "1.56"
 
 [dependencies]
-belt-block = "0.1"
+belt-block = "0.1.2"
 
 [dev-dependencies]
 hex-literal = "0.3"
