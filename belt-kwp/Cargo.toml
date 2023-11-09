@@ -1,0 +1,27 @@
+[package]
+name = "belt-kwp"
+version = "0.0.0"
+description = "STB 34.101.30-2020 Key Wrap Algorithm (KWP) implementation using Belt block cipher"
+authors = ["RustCrypto Developers"]
+license = "MIT OR Apache-2.0"
+homepage = "https://github.com/RustCrypto/key-wraps/"
+repository = "https://github.com/RustCrypto/key-wraps/tree/belt-kwp"
+keywords = ["crypto", "BELT-KW", "KW", "BELT-KWP", "KWP"]
+categories = ["cryptography", "no-std"]
+readme = "README.md"
+edition = "2021"
+rust-version = "1.56"
+
+[dependencies]
+belt-block = "0.1"
+
+[dev-dependencies]
+hex-literal = "0.3"
+
+[features]
+alloc = []
+std = ["alloc"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
