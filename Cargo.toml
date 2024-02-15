@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "aes-kw",
+    "belt-kwp",
 ]
 
 [profile.dev]
