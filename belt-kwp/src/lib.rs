@@ -9,6 +9,7 @@
 #![warn(missing_docs, rust_2018_idioms)]
 
 mod error;
+mod utils;
 
 pub use error::{Error, Result};
 
@@ -22,8 +23,7 @@ extern crate std;
 use alloc::vec::Vec;
 use belt_block::{
     belt_wblock_dec, belt_wblock_enc,
-    cipher::{consts::U32, generic_array::GenericArray},
-    to_u32,
+    cipher::{array::Array, consts::U32},
 };
 
 /// Block size for BelT-KWP
@@ -32,8 +32,8 @@ pub const SEMIBLOCK_LEN: usize = 8;
 /// Size of an BelT-block "semiblock" in bytes.
 pub const IV_LEN: usize = 16;
 
-impl From<GenericArray<u8, U32>> for BeltKwp {
-    fn from(kek: GenericArray<u8, U32>) -> Self {
+impl From<Array<u8, U32>> for BeltKwp {
+    fn from(kek: Array<u8, U32>) -> Self {
         BeltKwp::new(&kek)
     }
 }
@@ -49,7 +49,7 @@ impl TryFrom<&[u8]> for BeltKwp {
 
     fn try_from(value: &[u8]) -> Result<Self> {
         if value.len() == 32 {
-            Ok(BeltKwp::new(value.into()))
+            Ok(BeltKwp::new(value.try_into().unwrap()))
         } else {
             Err(Error::InvalidKekSize { size: value.len() })
         }
@@ -66,9 +66,9 @@ pub struct BeltKwp {
 
 impl BeltKwp {
     /// Constructs a new Kek based on the appropriate raw key material.
-    pub fn new(key: &GenericArray<u8, U32>) -> Self {
+    pub fn new(key: &Array<u8, U32>) -> Self {
         Self {
-            key: to_u32::<8>(key),
+            key: utils::to_u32::<8>(key),
         }
     }
 

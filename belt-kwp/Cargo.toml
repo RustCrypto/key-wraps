@@ -10,13 +10,13 @@ keywords = ["crypto", "BELT-KW", "KW", "BELT-KWP", "KWP"]
 categories = ["cryptography", "no-std"]
 readme = "README.md"
 edition = "2021"
-rust-version = "1.56"
+rust-version = "1.65"
 
 [dependencies]
-belt-block = "0.1.2"
+belt-block = "=0.2.0-pre.1"
 
 [dev-dependencies]
-hex-literal = "0.3"
+hex-literal = "0.4"
 
 [features]
 alloc = []
