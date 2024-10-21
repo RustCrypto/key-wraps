@@ -19,10 +19,10 @@ mod error;
 pub use error::{Error, Result};
 
 use aes::cipher::{
-    generic_array::GenericArray,
+    array::Array,
     typenum::{Unsigned, U16, U24, U32},
-    Block, BlockBackend, BlockCipher, BlockClosure, BlockDecrypt, BlockEncrypt, BlockSizeUser,
-    KeyInit,
+    Block, BlockCipherDecBackend, BlockCipherDecClosure, BlockCipherDecrypt, BlockCipherEncBackend,
+    BlockCipherEncClosure, BlockCipherEncrypt, BlockSizeUser, KeyInit,
 };
 
 #[cfg(feature = "alloc")]
@@ -77,7 +77,7 @@ pub const KWP_IV_PREFIX: [u8; IV_LEN / 2] = [0xA6, 0x59, 0x59, 0xA6];
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Kek<Aes>
 where
-    Aes: KeyInit + BlockCipher + BlockSizeUser<BlockSize = U16> + BlockEncrypt + BlockDecrypt,
+    Aes: KeyInit + BlockSizeUser<BlockSize = U16> + BlockCipherEncrypt + BlockCipherDecrypt,
 {
     /// Initialized cipher
     cipher: Aes,
@@ -92,20 +92,20 @@ pub type KekAes192 = Kek<aes::Aes192>;
 /// AES-256 KEK
 pub type KekAes256 = Kek<aes::Aes256>;
 
-impl From<GenericArray<u8, U16>> for KekAes128 {
-    fn from(kek: GenericArray<u8, U16>) -> Self {
+impl From<Array<u8, U16>> for KekAes128 {
+    fn from(kek: Array<u8, U16>) -> Self {
         Kek::new(&kek)
     }
 }
 
-impl From<GenericArray<u8, U24>> for KekAes192 {
-    fn from(kek: GenericArray<u8, U24>) -> Self {
+impl From<Array<u8, U24>> for KekAes192 {
+    fn from(kek: Array<u8, U24>) -> Self {
         Kek::new(&kek)
     }
 }
 
-impl From<GenericArray<u8, U32>> for KekAes256 {
-    fn from(kek: GenericArray<u8, U32>) -> Self {
+impl From<Array<u8, U32>> for KekAes256 {
+    fn from(kek: Array<u8, U32>) -> Self {
         Kek::new(&kek)
     }
 }
@@ -130,13 +130,15 @@ impl From<[u8; 32]> for KekAes256 {
 
 impl<Aes> TryFrom<&[u8]> for Kek<Aes>
 where
-    Aes: KeyInit + BlockCipher + BlockSizeUser<BlockSize = U16> + BlockEncrypt + BlockDecrypt,
+    Aes: KeyInit + BlockSizeUser<BlockSize = U16> + BlockCipherEncrypt + BlockCipherDecrypt,
 {
     type Error = Error;
 
     fn try_from(value: &[u8]) -> Result<Self> {
         if value.len() == Aes::KeySize::to_usize() {
-            Ok(Kek::new(GenericArray::from_slice(value)))
+            Ok(Kek::new(
+                &Array::try_from(value).expect("size invariant violated"),
+            ))
         } else {
             Err(Error::InvalidKekSize { size: value.len() })
         }
@@ -145,10 +147,10 @@ where
 
 impl<Aes> Kek<Aes>
 where
-    Aes: KeyInit + BlockCipher + BlockSizeUser<BlockSize = U16> + BlockEncrypt + BlockDecrypt,
+    Aes: KeyInit + BlockSizeUser<BlockSize = U16> + BlockCipherEncrypt + BlockCipherDecrypt,
 {
     /// Constructs a new Kek based on the appropriate raw key material.
-    pub fn new(key: &GenericArray<u8, Aes::KeySize>) -> Self {
+    pub fn new(key: &Array<u8, Aes::KeySize>) -> Self {
         let cipher = Aes::new(key);
         Kek { cipher }
     }
@@ -294,7 +296,7 @@ where
         if n == 1 {
             // 1) Append padding
 
-            // GenericArrays should be zero by default, but zeroize again to be sure
+            // Arrays should be zero by default, but zeroize again to be sure
             for i in data.len()..n * SEMIBLOCK_SIZE {
                 block[IV_LEN + i] = 0;
             }
@@ -431,15 +433,15 @@ impl<'a> BlockSizeUser for WCtx<'a> {
 
 /// Very similar to the W(S) function defined by NIST in SP 800-38F,
 /// Section 6.1
-impl<'a> BlockClosure for WCtx<'a> {
+impl<'a> BlockCipherEncClosure for WCtx<'a> {
     #[inline(always)]
-    fn call<B: BlockBackend<BlockSize = Self::BlockSize>>(self, backend: &mut B) {
+    fn call<B: BlockCipherEncBackend<BlockSize = Self::BlockSize>>(self, backend: &B) {
         for j in 0..=5 {
             for (i, chunk) in self.out.chunks_mut(SEMIBLOCK_SIZE).skip(1).enumerate() {
                 // A | R[i]
                 self.block[IV_LEN..].copy_from_slice(chunk);
                 // B = AES(K, ..)
-                backend.proc_block(self.block.into());
+                backend.encrypt_block(self.block.into());
 
                 // A = MSB(64, B) ^ t
                 let t = (self.n * j + (i + 1)) as u64;
@@ -466,9 +468,9 @@ impl<'a> BlockSizeUser for WInverseCtx<'a> {
 
 /// Very similar to the W^-1(S) function defined by NIST in SP 800-38F,
 /// Section 6.1
-impl<'a> BlockClosure for WInverseCtx<'a> {
+impl<'a> BlockCipherDecClosure for WInverseCtx<'a> {
     #[inline(always)]
-    fn call<B: BlockBackend<BlockSize = Self::BlockSize>>(self, backend: &mut B) {
+    fn call<B: BlockCipherDecBackend<BlockSize = Self::BlockSize>>(self, backend: &B) {
         for j in (0..=5).rev() {
             for (i, chunk) in self.out.chunks_mut(SEMIBLOCK_SIZE).enumerate().rev() {
                 // A ^ t
@@ -481,7 +483,7 @@ impl<'a> BlockClosure for WInverseCtx<'a> {
                 self.block[IV_LEN..].copy_from_slice(chunk);
 
                 // B = AES-1(K, ..)
-                backend.proc_block(self.block.into());
+                backend.decrypt_block(self.block.into());
 
                 // A = MSB(64, B)
                 // already set
