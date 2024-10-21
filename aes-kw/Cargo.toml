@@ -15,12 +15,16 @@ rust-version = "1.81"
 [dependencies]
 aes = "=0.9.0-pre.2"
 
+const-oid = { version = "0.10.0-rc.2", optional = true }
+
 [dev-dependencies]
 hex-literal = "0.3"
 
 [features]
+default = ["std", "oid"]
 alloc = []
 std = ["alloc"]
+oid = ["dep:const-oid"]
 
 [package.metadata.docs.rs]
 all-features = true
