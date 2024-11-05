@@ -275,7 +275,7 @@ where
         // 0) Prepare inputs
 
         // number of 64 bit blocks in the input data (padded)
-        let n = (data.len() + SEMIBLOCK_SIZE - 1) / SEMIBLOCK_SIZE;
+        let n = data.len().div_ceil(SEMIBLOCK_SIZE);
 
         if out.len() != n * SEMIBLOCK_SIZE + IV_LEN {
             return Err(Error::InvalidOutputSize {
@@ -332,7 +332,7 @@ where
     #[cfg(feature = "alloc")]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     pub fn wrap_with_padding_vec(&self, data: &[u8]) -> Result<Vec<u8>> {
-        let n = (data.len() + SEMIBLOCK_SIZE - 1) / SEMIBLOCK_SIZE;
+        let n = data.len().div_ceil(SEMIBLOCK_SIZE);
         let mut out = vec![0u8; n * SEMIBLOCK_SIZE + IV_LEN];
         self.wrap_with_padding(data, &mut out)?;
         Ok(out)
@@ -430,13 +430,13 @@ struct WCtx<'a> {
     out: &'a mut [u8],
 }
 
-impl<'a> BlockSizeUser for WCtx<'a> {
+impl BlockSizeUser for WCtx<'_> {
     type BlockSize = U16;
 }
 
 /// Very similar to the W(S) function defined by NIST in SP 800-38F,
 /// Section 6.1
-impl<'a> BlockCipherEncClosure for WCtx<'a> {
+impl BlockCipherEncClosure for WCtx<'_> {
     #[inline(always)]
     fn call<B: BlockCipherEncBackend<BlockSize = Self::BlockSize>>(self, backend: &B) {
         for j in 0..=5 {
@@ -465,13 +465,13 @@ struct WInverseCtx<'a> {
     out: &'a mut [u8],
 }
 
-impl<'a> BlockSizeUser for WInverseCtx<'a> {
+impl BlockSizeUser for WInverseCtx<'_> {
     type BlockSize = U16;
 }
 
 /// Very similar to the W^-1(S) function defined by NIST in SP 800-38F,
 /// Section 6.1
-impl<'a> BlockCipherDecClosure for WInverseCtx<'a> {
+impl BlockCipherDecClosure for WInverseCtx<'_> {
     #[inline(always)]
     fn call<B: BlockCipherDecBackend<BlockSize = Self::BlockSize>>(self, backend: &B) {
         for j in (0..=5).rev() {
