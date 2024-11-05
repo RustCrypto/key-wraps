@@ -104,7 +104,7 @@ Implemented for 128/192/256bit keys.
 
 ## Minimum Supported Rust Version
 
-This crate requires **Rust 1.56** at a minimum.
+This crate requires **Rust 1.81** at a minimum.
 
 We may change the MSRV in the future, but it will be accompanied by a minor
 version bump.
@@ -131,7 +131,7 @@ dual licensed as above, without any additional terms or conditions.
 [docs-image]: https://docs.rs/aes-kw/badge.svg
 [docs-link]: https://docs.rs/aes-kw/
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
-[rustc-image]: https://img.shields.io/badge/rustc-1.56+-blue.svg
+[rustc-image]: https://img.shields.io/badge/rustc-1.81+-blue.svg
 [build-image]: https://github.com/RustCrypto/key-wraps/actions/workflows/aes-kw.yml/badge.svg
 [build-link]: https://github.com/RustCrypto/key-wraps/actions/workflows/aes-kw.yml
 

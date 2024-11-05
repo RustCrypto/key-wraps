@@ -17,7 +17,8 @@ storage or transmitting keys over untrusted communications networks.
 
 | Algorithm | Crate  | Crates.io     | Documentation | MSRV |
 |-----------|--------|:-------------:|:-------------:|:----:|
-| [AES-KW] and [AES-KWP] | [`aes‑kw`] | [![crates.io](https://img.shields.io/crates/v/aes-kw.svg)](https://crates.io/crates/aes-kw) | [![Documentation](https://docs.rs/aes-kw/badge.svg)](https://docs.rs/aes-kw) | ![MSRV 1.56][msrv-1.56] |
+| [AES-KW] and [AES-KWP] | [`aes‑kw`] | [![crates.io](https://img.shields.io/crates/v/aes-kw.svg)](https://crates.io/crates/aes-kw) | [![Documentation](https://docs.rs/aes-kw/badge.svg)](https://docs.rs/aes-kw) | ![MSRV 1.81][msrv-1.81] |
+| [`belt-kwp`][belt-kwp-spec] | [`belt-kwp`][belt-kwp-crate] | [![crates.io](https://img.shields.io/crates/v/belt-kwp.svg)](https://crates.io/crates/belt-kwp) | [![Documentation](https://docs.rs/belt-kwp/badge.svg)](https://docs.rs/belt-kwp) | ![MSRV 1.81][msrv-1.81] |
 
 *NOTE: for modern proven KWs (e.g. AES-SIV, AES-GCM-SIV), please see [RustCrypto/AEADs]*
 
@@ -43,15 +44,17 @@ Unless you explicitly state otherwise, any contribution intentionally submitted 
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
 [deps-image]: https://deps.rs/repo/github/RustCrypto/key-wraps/status.svg
 [deps-link]: https://deps.rs/repo/github/RustCrypto/key-wraps
-[msrv-1.56]: https://img.shields.io/badge/rustc-1.56.0+-blue.svg
+[msrv-1.81]: https://img.shields.io/badge/rustc-1.81.0+-blue.svg
 
 [//]: # (crates)
 
 [`aes‑kw`]: ./aes-kw
+[belt-kwp-crate]: ./belt-kwp
 
 [//]: # (algorithms)
 
 [KW]: https://en.wikipedia.org/wiki/Key_Wrap
 [AES-KW]: https://datatracker.ietf.org/doc/html/rfc3394
 [AES-KWP]: https://datatracker.ietf.org/doc/html/rfc5649
+[belt-kwp-spec]: https://apmi.bsu.by/assets/files/std/belt-spec371.pdf
 [RustCrypto/AEADs]: https://github.com/RustCrypto/AEADs
