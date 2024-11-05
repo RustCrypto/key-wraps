@@ -7,6 +7,3 @@ members = [
 
 [profile.dev]
 opt-level = 2
-
-#[patch.crates-io]
-#belt-block = { git = "https://github.com/RustCrypto/block-ciphers.git" }
