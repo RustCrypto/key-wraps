@@ -20,7 +20,24 @@ version = "0.3.0-pre"
 dependencies = [
  "aes",
  "const-oid",
- "hex-literal",
+ "hex-literal 0.3.4",
+]
+
+[[package]]
+name = "belt-block"
+version = "0.2.0-pre.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6df0a14d60362d7b6041d3fe85dfd787ced16c4928f93d72152142c67d01d0bc"
+dependencies = [
+ "cipher",
+]
+
+[[package]]
+name = "belt-kwp"
+version = "0.0.0"
+dependencies = [
+ "belt-block",
+ "hex-literal 0.4.1",
 ]
 
 [[package]]
@@ -47,9 +64,9 @@ checksum = "68ff6be19477a1bd5441f382916a89bc2a0b2c35db6d41e0f6e8538bf6d6463f"
 
 [[package]]
 name = "cpufeatures"
-version = "0.2.5"
+version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "28d997bd5e24a5928dd43e46dc529867e207907fe0b239c3477d924f7f2ca320"
+checksum = "608697df725056feaccfa42cffdaeeec3fccc4ffc38358ecd19b243e716a78e0"
 dependencies = [
  "libc",
 ]
@@ -70,6 +87,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ebdb29d2ea9ed0083cd8cece49bbd968021bd99b0849edb4a9a7ee0fdf6a4e0"
 
 [[package]]
+name = "hex-literal"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6fe2267d4ed49bc07b63801559be28c718ea06c4738b7a03c94df7386d2cde46"
+
+[[package]]
 name = "hybrid-array"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -80,18 +103,18 @@ dependencies = [
 
 [[package]]
 name = "inout"
-version = "0.2.0-rc.1"
+version = "0.2.0-rc.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "161ac07241f4d11c21b6d82f1fef1c05aec030c0bf568b35281efe453ea450a7"
+checksum = "14db49369b2c3f15deb5806de446e05c7f07a2d778b54b278c994fcd1d686f31"
 dependencies = [
  "hybrid-array",
 ]
 
 [[package]]
 name = "libc"
-version = "0.2.134"
+version = "0.2.161"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "329c933548736bc49fd575ee68c89e8be4d260064184389a5b77517cddd99ffb"
+checksum = "8e9489c2807c139ffd9c1794f4af0ebe86a828db53ecdc7fea2111d0fed085d1"
 
 [[package]]
 name = "typenum"
