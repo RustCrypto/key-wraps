@@ -14,6 +14,7 @@ Pure Rust implementation of the `belt-kwp` key wrapping algorithm defined in [ST
 
 ```rust
 use hex_literal::hex;
+use belt_kwp::cipher::KeyInit;
 
 let x: [u8; 32] = hex!(
     "B194BAC8 0A08F53B 366D008E 584A5DE4"
@@ -32,7 +33,7 @@ let y: [u8; 48] = hex!(
 
 let mut buf = [0u8; 48];
 
-let kw = belt_kwp::BeltKwp::new(&k);
+let kw = belt_kwp::BeltKwp::new(&(k.into()));
 
 let wrapped_key = kw.wrap_key(&x, &i, &mut buf).unwrap();
 assert_eq!(y, wrapped_key);

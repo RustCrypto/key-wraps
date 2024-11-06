@@ -23,10 +23,12 @@ pub use error::{Error, Result};
 
 use aes::cipher::{
     array::Array,
-    typenum::{Unsigned, U16, U24, U32},
+    typenum::{U16, U24, U32},
     Block, BlockCipherDecBackend, BlockCipherDecClosure, BlockCipherDecrypt, BlockCipherEncBackend,
-    BlockCipherEncClosure, BlockCipherEncrypt, BlockSizeUser, KeyInit,
+    BlockCipherEncClosure, BlockCipherEncrypt, BlockSizeUser,
 };
+
+pub use aes::cipher::{self, Key, KeyInit, KeySizeUser};
 
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
@@ -138,13 +140,7 @@ where
     type Error = Error;
 
     fn try_from(value: &[u8]) -> Result<Self> {
-        if value.len() == Aes::KeySize::to_usize() {
-            Ok(Kek::new(
-                &Array::try_from(value).expect("size invariant violated"),
-            ))
-        } else {
-            Err(Error::InvalidKekSize { size: value.len() })
-        }
+        Self::new_from_slice(value).map_err(|_| Error::InvalidKekSize { size: value.len() })
     }
 }
 
@@ -152,12 +148,6 @@ impl<Aes> Kek<Aes>
 where
     Aes: KeyInit + BlockSizeUser<BlockSize = U16> + BlockCipherEncrypt + BlockCipherDecrypt,
 {
-    /// Constructs a new Kek based on the appropriate raw key material.
-    pub fn new(key: &Array<u8, Aes::KeySize>) -> Self {
-        let cipher = Aes::new(key);
-        Kek { cipher }
-    }
-
     /// AES Key Wrap, as defined in RFC 3394.
     ///
     /// The `out` buffer will be overwritten, and must be exactly [`IV_LEN`]
@@ -421,6 +411,27 @@ where
         let out_len = self.unwrap_with_padding(data, &mut out)?.len();
         out.truncate(out_len);
         Ok(out)
+    }
+}
+
+impl<Aes> KeyInit for Kek<Aes>
+where
+    Aes: KeyInit + BlockSizeUser<BlockSize = U16> + BlockCipherEncrypt + BlockCipherDecrypt,
+{
+    fn new(key: &Key<Self>) -> Self {
+        let cipher = Aes::new(key);
+        Kek { cipher }
+    }
+}
+
+impl<Aes> KeySizeUser for Kek<Aes>
+where
+    Aes: KeyInit + BlockSizeUser<BlockSize = U16> + BlockCipherEncrypt + BlockCipherDecrypt,
+{
+    type KeySize = Aes::KeySize;
+
+    fn key_size() -> usize {
+        Aes::key_size()
     }
 }
 

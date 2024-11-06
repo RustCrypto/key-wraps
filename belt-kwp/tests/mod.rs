@@ -1,6 +1,6 @@
 //! Test vectors from STB 4.101.31-2020 (section A.10, tables A.21-A.22):
 //! https://apmi.bsu.by/assets/files/std/belt-spec371.pdf
-use belt_kwp::BeltKwp;
+use belt_kwp::{BeltKwp, KeyInit};
 use hex_literal::hex;
 
 #[test]
@@ -25,13 +25,13 @@ fn belt_kwp() {
 
     let mut buf = [0u8; 48];
 
-    let kw = BeltKwp::new(&k1);
+    let kw = BeltKwp::new((&k1).into());
     let res = kw.wrap_key(&x1, &i1, &mut buf).unwrap();
     assert_eq!(y1, res);
     let res = kw.unwrap_key(&y1, &i1, &mut buf).unwrap();
     assert_eq!(x1, res);
 
-    let kw = BeltKwp::new(&k2);
+    let kw = BeltKwp::new((&k2).into());
     let res = kw.wrap_key(&x2, &i2, &mut buf).unwrap();
     assert_eq!(y2, res);
     let res = kw.unwrap_key(&y2, &i2, &mut buf).unwrap();
