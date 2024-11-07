@@ -8,8 +8,10 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs, rust_2018_idioms)]
 
-use belt_block::{belt_wblock_dec, belt_wblock_enc};
+use belt_block::{belt_wblock_dec, belt_wblock_enc, BeltBlock};
 use core::fmt;
+
+pub use belt_block::cipher::{self, Key, KeyInit, KeySizeUser};
 
 /// Size of wrapping "header".
 pub const IV_LEN: usize = 16;
@@ -27,16 +29,6 @@ impl fmt::Debug for BeltKwp {
 }
 
 impl BeltKwp {
-    /// Create new [`BeltKwp`] instance.
-    #[inline]
-    pub fn new(key: &[u8; 32]) -> Self {
-        let mut res = [0u32; 8];
-        res.iter_mut()
-            .zip(key.chunks_exact(4))
-            .for_each(|(dst, src)| *dst = u32::from_le_bytes(src.try_into().unwrap()));
-        Self { key: res }
-    }
-
     /// Wrap key `x` with given `iv` and write result to `out`.
     ///
     /// Size of `x` must be bigger than 16 bytes.
@@ -104,6 +96,25 @@ impl BeltKwp {
             rem.fill(0);
             Err(Error::IntegrityCheckFailed)
         }
+    }
+}
+
+impl KeyInit for BeltKwp {
+    fn new(key: &Key<Self>) -> Self {
+        let mut res = [0u32; 8];
+        res.iter_mut()
+            .zip(key.chunks_exact(4))
+            .for_each(|(dst, src)| *dst = u32::from_le_bytes(src.try_into().unwrap()));
+
+        Self { key: res }
+    }
+}
+
+impl KeySizeUser for BeltKwp {
+    type KeySize = <BeltBlock as KeySizeUser>::KeySize;
+
+    fn key_size() -> usize {
+        BeltBlock::key_size()
     }
 }
 
