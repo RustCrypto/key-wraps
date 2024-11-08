@@ -7,12 +7,12 @@
 [![Build Status][build-image]][build-link]
 
 Pure Rust implementation of the [NIST AES-KW Key Wrap] and
-[NIST AES-KWP Key Wrap with Padding] modes also described in [RFC3394]
-and [RFC5649].
+[NIST AES-KWP Key Wrap with Padding] modes also described in [RFC 3394]
+and [RFC 5649].
 
 ## About
 
-RFC3394 § 2 describes AES-KW as follows:
+RFC 3394 § 2 describes AES-KW as follows:
 
 > The AES key wrap algorithm is designed to wrap or encrypt key data.
 > The key wrap operates on blocks of 64 bits.  Before being wrapped,
@@ -54,21 +54,21 @@ RFC5649 § 1 describes AES-KWP as follows:
 > octets.  Most systems will have other factors that limit the
 > practical size of key data to much less than 2^32 octets.
 
-# Examples
+## Examples
 
 ```rust
 use hex_literal::hex;
 use aes_kw::{KwAes128, KeyInit};
 
-// Key which is used to perform wrappin
-let kek_key: [u8; 16] = hex!("000102030405060708090A0B0C0D0E0F");
+// Key which is used to perform wrapping
+let kw_key: [u8; 16] = hex!("000102030405060708090A0B0C0D0E0F");
 // Key which will be wrapped
 let key: [u8; 16] = hex!("00112233445566778899AABBCCDDEEFF");
 // Wrapped key
 let wkey: [u8; 24] = hex!("1FA68B0A8112B447AEF34BD8FB5A7B829D3E862371D2CFE5");
 
 
-let kw = KwAes128::new(&kek_key.into());
+let kw = KwAes128::new(&kw_key.into());
 
 let mut buf = [0u8; 24];
 kw.wrap(&key, &mut buf).unwrap();
@@ -116,5 +116,5 @@ dual licensed as above, without any additional terms or conditions.
 
 [NIST AES-KW Key Wrap]: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38F.pdf
 [NIST AES-KWP Key Wrap with Padding]: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38F.pdf
-[RFC3394]: https://datatracker.ietf.org/doc/html/rfc3394
-[RFC5649]: https://datatracker.ietf.org/doc/html/rfc5649
+[RFC 3394]: https://www.rfc-editor.org/rfc/rfc3394.txt
+[RFC 5649]: https://www.rfc-editor.org/rfc/rfc5649.txt

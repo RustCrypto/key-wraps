@@ -1,21 +1,17 @@
-use aes_kw::{Error, KeyInit, KwpAes128, KwpAes192, KwpAes256, IV_LEN};
+use aes_kw::{Error, KeyInit, KwpAes128, KwpAes192, KwpAes256};
 use hex_literal::hex;
 use std::assert_eq;
 
 macro_rules! test_aes_kwp {
-    ($name:ident, $kek_typ:ty, $key:expr, $input:expr, $output:expr) => {
+    ($name:ident, $kwp_ty:ty, $key:expr, $pt:expr, $ct:expr) => {
         #[test]
         fn $name() {
-            let kek = <$kek_typ>::new(&$key.into());
-
-            let mut wrapped = [0u8; $output.len()];
-            kek.wrap(&$input, &mut wrapped).unwrap();
-
-            let mut unwrapped = [0u8; $output.len() - IV_LEN];
-            let unwrapped_slice = kek.unwrap(&wrapped, &mut unwrapped).unwrap();
-
-            assert_eq!($output, wrapped, "failed wrap");
-            assert_eq!($input, unwrapped_slice, "failed unwrap");
+            let kwp = <$kwp_ty>::new(&$key.into());
+            let mut buf = [0u8; 64];
+            let ct = kwp.wrap(&$pt, &mut buf).unwrap();
+            assert_eq!($ct, ct);
+            let pt = kwp.unwrap(&$ct, &mut buf).unwrap();
+            assert_eq!($pt, pt);
         }
     };
 }
@@ -35,7 +31,7 @@ test_aes_kwp!(
     hex!("afbeb0f07dfbf5419200f2ccb50bb24f")
 );
 
-// These test vectors were obtained using NIST's ACVP system
+// These test vectors were obtained using NIST's CAVP system
 
 test_aes_kwp!(
     wrap_unwrap_24_key_128_kek,
@@ -128,17 +124,17 @@ fn padding_cleared() {
     let input = hex!("c37b7e6492584340bed12207808941155068f738");
     let output = hex!("138bdeaa9b8fa7fc61f97742e72248ee5ae6ae5360d1ae6a5f54f373fa543b6a");
 
-    let kek = KwpAes192::new(&key.into());
+    let kwp = KwpAes192::new(&key.into());
 
-    let mut wrapped = [0u8; 32];
+    let mut buf = [0u8; 32];
     // The following positions should be zeroized by wrap (padding).
-    wrapped[20] = 0xFF;
-    wrapped[21] = 0xFF;
-    wrapped[22] = 0xFF;
-    wrapped[23] = 0xFF;
-    kek.wrap(&input, &mut wrapped).unwrap();
+    buf[20] = 0xFF;
+    buf[21] = 0xFF;
+    buf[22] = 0xFF;
+    buf[23] = 0xFF;
+    let res = kwp.wrap(&input, &mut buf).unwrap();
 
-    assert_eq!(output, wrapped, "failed wrap");
+    assert_eq!(output, res);
 }
 
 #[test]
@@ -146,26 +142,13 @@ fn error_invalid_data_size() {
     let key = hex!("EBEE1B9211AADEFD06D258605F7134FB");
     let output = hex!("634194EACA80D77A21D11DD3E739DC5AA3FECA2CE09905");
 
-    let kek = KwpAes128::new(&key.into());
+    let kwp = KwpAes128::new(&key.into());
 
-    let mut unwrapped = [0u8; 16];
-    let result = kek.unwrap(&output, &mut unwrapped);
-
-    assert!(result.is_err());
-    assert!(matches!(result.unwrap_err(), Error::InvalidDataSize));
-
-    let mut unwrapped = [0u8; 0];
-    let result = kek.unwrap(&[], &mut unwrapped);
-
-    assert!(result.is_err());
-    assert!(matches!(result.unwrap_err(), Error::InvalidDataSize));
-}
-
-#[test]
-fn error_invalid_kek_size() {
-    let key = hex!("EBEE1B9211AADEFD06D258605F7134");
-    let result = KwpAes128::new_from_slice(&key);
-    assert!(result.is_err());
+    let mut buf = [0u8; 16];
+    let res = kwp.unwrap(&output, &mut buf);
+    assert_eq!(res, Err(Error::InvalidDataSize));
+    let res = kwp.unwrap(&[], &mut buf);
+    assert_eq!(res, Err(Error::InvalidDataSize));
 }
 
 #[test]
@@ -174,25 +157,14 @@ fn error_invalid_output_size() {
     let input = hex!("4029F7DA4F8C29E4BB951A6F9D7F5305");
     let output = hex!("634194EACA80D77A21D11DD3E739DC5AA3FECA2CE0990507");
 
-    let kek = KwpAes128::new(&key.into());
+    let kwp = KwpAes128::new(&key.into());
 
-    let mut wrapped = [0u8; 23];
-    let result = kek.wrap(&input, &mut wrapped);
+    let mut buf = [0u8; 32];
+    let res = kwp.wrap(&input, &mut buf[..23]);
+    assert_eq!(res, Err(Error::InvalidOutputSize { expected_len: 24 }));
 
-    assert!(result.is_err());
-    assert!(matches!(
-        result.unwrap_err(),
-        Error::InvalidOutputSize { expected_len: 24 }
-    ));
-
-    let mut unwrapped = [0u8; 15];
-    let result = kek.unwrap(&output, &mut unwrapped);
-
-    assert!(result.is_err());
-    assert!(matches!(
-        result.unwrap_err(),
-        Error::InvalidOutputSize { expected_len: 16 }
-    ));
+    let res = kwp.unwrap(&output, &mut buf[..15]);
+    assert_eq!(res, Err(Error::InvalidOutputSize { expected_len: 16 }));
 
     // Make sure we also test the padded case
 
@@ -202,23 +174,11 @@ fn error_invalid_output_size() {
 
     let kek = KwpAes128::new(&key.into());
 
-    let mut wrapped = [0u8; 11];
-    let result = kek.wrap(&input, &mut wrapped);
+    let res = kek.wrap(&input, &mut buf[..11]);
+    assert_eq!(res, Err(Error::InvalidOutputSize { expected_len: 16 }));
 
-    assert!(result.is_err());
-    assert!(matches!(
-        result.unwrap_err(),
-        Error::InvalidOutputSize { expected_len: 16 }
-    ));
-
-    let mut unwrapped = [0u8; 3];
-    let result = kek.unwrap(&output, &mut unwrapped);
-
-    assert!(result.is_err());
-    assert!(matches!(
-        result.unwrap_err(),
-        Error::InvalidOutputSize { expected_len: 8 }
-    ));
+    let res = kek.unwrap(&output, &mut buf[..3]);
+    assert_eq!(res, Err(Error::InvalidOutputSize { expected_len: 8 }));
 }
 
 #[test]
@@ -226,13 +186,10 @@ fn error_integrity_check_failed() {
     let key = hex!("EBEE1B9211AADEFD06D258605F7134FB");
     let output = hex!("634194EACA80D77A21D11DD3E739DC5AA3FECA2CE0990508");
 
-    let kek = KwpAes128::new(&key.into());
-
-    let mut unwrapped = [0u8; 16];
-    let result = kek.unwrap(&output, &mut unwrapped);
-
-    assert!(result.is_err());
-    assert!(matches!(result.unwrap_err(), Error::IntegrityCheckFailed));
+    let kwp = KwpAes128::new(&key.into());
+    let mut buf = [0u8; 16];
+    let res = kwp.unwrap(&output, &mut buf);
+    assert_eq!(res, Err(Error::IntegrityCheckFailed));
 
     // Make sure we also test the padded case
 
@@ -240,10 +197,7 @@ fn error_integrity_check_failed() {
     let output = hex!("A661F530339C9F344FA4755AD4CC3559");
 
     let kek = KwpAes128::new(&key.into());
-
-    let mut unwrapped = [0u8; 8];
-    let result = kek.unwrap(&output, &mut unwrapped);
-
-    assert!(result.is_err());
-    assert!(matches!(result.unwrap_err(), Error::IntegrityCheckFailed));
+    let mut buf = [0u8; 8];
+    let res = kek.unwrap(&output, &mut buf);
+    assert_eq!(res, Err(Error::IntegrityCheckFailed));
 }

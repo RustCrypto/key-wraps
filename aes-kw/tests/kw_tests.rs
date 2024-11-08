@@ -3,19 +3,15 @@ use hex_literal::hex;
 use std::assert_eq;
 
 macro_rules! test_aes_kw {
-    ($name:ident, $kek_typ:ty, $kek:expr, $input:expr, $output:expr) => {
+    ($name:ident, $kw_ty:ty, $key:expr, $pt:expr, $ct:expr) => {
         #[test]
         fn $name() {
-            let kek = <$kek_typ>::new(&$kek.into());
-
-            let mut wrapped = [0u8; $output.len()];
-            kek.wrap(&$input, &mut wrapped).unwrap();
-
-            let mut unwrapped = [0u8; $input.len()];
-            kek.unwrap(&wrapped, &mut unwrapped).unwrap();
-
-            assert_eq!($output, wrapped, "failed wrap");
-            assert_eq!($input, unwrapped, "failed unwrap");
+            let kw = <$kw_ty>::new(&$key.into());
+            let mut buf = [0u8; 64];
+            let ct = kw.wrap(&$pt, &mut buf).unwrap();
+            assert_eq!($ct, ct);
+            let pt = kw.unwrap(&$ct, &mut buf).unwrap();
+            assert_eq!($pt, pt);
         }
     };
 }
@@ -70,31 +66,16 @@ fn error_invalid_data_size() {
     let output = hex!("1FA68B0A8112B447AEF34BD8FB5A7B829D3E862371D2CF");
 
     let kek = KwAes128::new(&key.into());
+    let mut buf = [0u8; 24];
 
-    let mut wrapped = [0u8; 24];
-    let result = kek.wrap(&input, &mut wrapped);
+    let res = kek.wrap(&input, &mut buf);
+    assert_eq!(res, Err(Error::InvalidDataSize));
 
-    assert!(result.is_err());
-    assert!(matches!(result.unwrap_err(), Error::InvalidDataSize));
+    let res = kek.unwrap(&output, &mut buf);
+    assert_eq!(res, Err(Error::InvalidDataSize));
 
-    let mut unwrapped = [0u8; 16];
-    let result = kek.unwrap(&output, &mut unwrapped);
-
-    assert!(result.is_err());
-    assert!(matches!(result.unwrap_err(), Error::InvalidDataSize));
-
-    let mut unwrapped = [0u8; 0];
-    let result = kek.unwrap(&[], &mut unwrapped);
-
-    assert!(result.is_err());
-    assert!(matches!(result.unwrap_err(), Error::InvalidDataSize));
-}
-
-#[test]
-fn error_invalid_kek_size() {
-    let kek = hex!("000102030405060708090A0B0C0D0E");
-    let result = KwAes128::new_from_slice(&kek);
-    assert!(result.is_err());
+    let res = kek.unwrap(&[], &mut buf);
+    assert_eq!(res, Err(Error::InvalidDataSize));
 }
 
 #[test]
@@ -105,23 +86,13 @@ fn error_invalid_output_size() {
 
     let kek = KwAes128::new(&key.into());
 
-    let mut wrapped = [0u8; 23];
-    let result = kek.wrap(&input, &mut wrapped);
+    let mut buf = [0u8; 23];
+    let res = kek.wrap(&input, &mut buf);
+    assert_eq!(res, Err(Error::InvalidOutputSize { expected_len: 24 }));
 
-    assert!(result.is_err());
-    assert!(matches!(
-        result.unwrap_err(),
-        Error::InvalidOutputSize { expected_len: 24 }
-    ));
-
-    let mut unwrapped = [0u8; 15];
-    let result = kek.unwrap(&output, &mut unwrapped);
-
-    assert!(result.is_err());
-    assert!(matches!(
-        result.unwrap_err(),
-        Error::InvalidOutputSize { expected_len: 16 }
-    ));
+    let mut buf = [0u8; 15];
+    let res = kek.unwrap(&output, &mut buf);
+    assert_eq!(res, Err(Error::InvalidOutputSize { expected_len: 16 }));
 }
 
 #[test]
@@ -131,9 +102,8 @@ fn error_integrity_check_failed() {
 
     let kek = KwAes128::new(&key.into());
 
-    let mut unwrapped = [0u8; 16];
-    let result = kek.unwrap(&output, &mut unwrapped);
+    let mut buf = [0u8; 16];
+    let res = kek.unwrap(&output, &mut buf);
 
-    assert!(result.is_err());
-    assert!(matches!(result.unwrap_err(), Error::IntegrityCheckFailed));
+    assert_eq!(res, Err(Error::IntegrityCheckFailed));
 }

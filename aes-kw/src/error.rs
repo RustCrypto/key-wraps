@@ -1,7 +1,7 @@
 use core::fmt;
 
 /// Errors emitted from the wrap and unwrap operations.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     /// Input data length invalid.
     InvalidDataSize,

@@ -17,26 +17,26 @@ mod kw;
 mod kwp;
 
 pub use error::Error;
-pub use kw::Kw;
-pub use kwp::Kwp;
+pub use kw::AesKw;
+pub use kwp::AesKwp;
 
 pub use aes;
 pub use aes::cipher;
 pub use aes::cipher::{crypto_common::InnerInit, KeyInit};
 
 /// AES-128 key wrapping
-pub type KwAes128 = Kw<aes::Aes128>;
+pub type KwAes128 = AesKw<aes::Aes128>;
 /// AES-192 key wrapping
-pub type KwAes192 = Kw<aes::Aes192>;
+pub type KwAes192 = AesKw<aes::Aes192>;
 /// AES-256 key wrapping
-pub type KwAes256 = Kw<aes::Aes256>;
+pub type KwAes256 = AesKw<aes::Aes256>;
 
 /// AES-128 key wrapping
-pub type KwpAes128 = Kwp<aes::Aes128>;
+pub type KwpAes128 = AesKwp<aes::Aes128>;
 /// AES-192 key wrapping
-pub type KwpAes192 = Kwp<aes::Aes192>;
+pub type KwpAes192 = AesKwp<aes::Aes192>;
 /// AES-256 key wrapping
-pub type KwpAes256 = Kwp<aes::Aes256>;
+pub type KwpAes256 = AesKwp<aes::Aes256>;
 
 /// Size of an AES "semiblock" in bytes.
 ///

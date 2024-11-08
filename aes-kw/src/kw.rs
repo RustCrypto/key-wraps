@@ -23,28 +23,34 @@ use aes::cipher::{
 /// ```
 const IV: [u8; IV_LEN] = [0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6];
 
-/// A Key-Encrypting-Key (KEK) that can be used to wrap and unwrap other keys.
+/// AES Key Wrapper (KW), as defined in [RFC 3394].
+///
+/// [RFC 3394]: https://www.rfc-editor.org/rfc/rfc3394.txt
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Kw<C> {
+pub struct AesKw<C> {
     cipher: C,
 }
 
-impl<C> InnerUser for Kw<C> {
+impl<C> InnerUser for AesKw<C> {
     type Inner = C;
 }
 
-impl<C> InnerInit for Kw<C> {
+impl<C> InnerInit for AesKw<C> {
+    #[inline]
     fn inner_init(cipher: Self::Inner) -> Self {
-        Kw { cipher }
+        AesKw { cipher }
     }
 }
 
-impl<C: BlockCipherEncrypt<BlockSize = U16>> Kw<C> {
-    /// AES Key Wrap, as defined in RFC 3394.
+impl<C: BlockCipherEncrypt<BlockSize = U16>> AesKw<C> {
+    /// Wrap `data` and write result to `buf`.
     ///
-    /// The `out` buffer will be overwritten, and must be exactly [`IV_LEN`]
-    /// bytes (i.e. 8 bytes) longer than the length of `data`.
-    pub fn wrap(&self, data: &[u8], out: &mut [u8]) -> Result<(), Error> {
+    /// Returns slice which points to `buf` and contains wrapped data.
+    ///
+    /// Length of `data` must be multiple of [`SEMIBLOCK_SIZE`] and bigger than zero.
+    /// Length of `buf` must be bigger or equal to `data.len() + IV_LEN`.
+    #[inline]
+    pub fn wrap<'a>(&self, data: &[u8], buf: &'a mut [u8]) -> Result<&'a [u8], Error> {
         let blocks_len = data.len() / SEMIBLOCK_SIZE;
         let blocks_rem = data.len() % SEMIBLOCK_SIZE;
         if blocks_rem != 0 {
@@ -52,9 +58,9 @@ impl<C: BlockCipherEncrypt<BlockSize = U16>> Kw<C> {
         }
 
         let expected_len = data.len() + IV_LEN;
-        if out.len() != expected_len {
-            return Err(Error::InvalidOutputSize { expected_len });
-        }
+        let buf = buf
+            .get_mut(..expected_len)
+            .ok_or(Error::InvalidOutputSize { expected_len })?;
 
         // 1) Initialize variables
 
@@ -63,27 +69,30 @@ impl<C: BlockCipherEncrypt<BlockSize = U16>> Kw<C> {
         block[..IV_LEN].copy_from_slice(&IV);
 
         // 2) Calculate intermediate values
-        out[IV_LEN..].copy_from_slice(data);
+        buf[IV_LEN..].copy_from_slice(data);
 
         self.cipher.encrypt_with_backend(Ctx {
             blocks_len,
             block,
-            out,
+            buf,
         });
 
         // 3) Output the results
-        out[..IV_LEN].copy_from_slice(&block[..IV_LEN]);
+        buf[..IV_LEN].copy_from_slice(&block[..IV_LEN]);
 
-        Ok(())
+        Ok(buf)
     }
 }
 
-impl<C: BlockCipherDecrypt<BlockSize = U16>> Kw<C> {
-    /// AES Key Unwrap, as defined in RFC 3394.
+impl<C: BlockCipherDecrypt<BlockSize = U16>> AesKw<C> {
+    /// Unwrap `data` and write result to `buf`.
     ///
-    /// The `out` buffer will be overwritten, and must be exactly [`IV_LEN`]
-    /// bytes (i.e. 8 bytes) shorter than the length of `data`.
-    pub fn unwrap(&self, data: &[u8], out: &mut [u8]) -> Result<(), Error> {
+    /// Returns slice which points to `buf` and contains unwrapped data.
+    ///
+    /// Length of `data` must be multiple of [`SEMIBLOCK_SIZE`] and bigger than zero.
+    /// Length of `buf` must be bigger or equal to `data.len()`.
+    #[inline]
+    pub fn unwrap<'a>(&self, data: &[u8], buf: &'a mut [u8]) -> Result<&'a [u8], Error> {
         let blocks_len = data.len() / SEMIBLOCK_SIZE;
         let blocks_rem = data.len() % SEMIBLOCK_SIZE;
         if blocks_rem != 0 || blocks_len < 1 {
@@ -95,9 +104,9 @@ impl<C: BlockCipherDecrypt<BlockSize = U16>> Kw<C> {
         let blocks_len = blocks_len - 1;
 
         let expected_len = blocks_len * SEMIBLOCK_SIZE;
-        if out.len() != expected_len {
-            return Err(Error::InvalidOutputSize { expected_len });
-        }
+        let buf = buf
+            .get_mut(..expected_len)
+            .ok_or(Error::InvalidOutputSize { expected_len })?;
 
         // 1) Initialize variables
 
@@ -105,14 +114,14 @@ impl<C: BlockCipherDecrypt<BlockSize = U16>> Kw<C> {
         block[..IV_LEN].copy_from_slice(&data[..IV_LEN]);
 
         //   for i = 1 to n: R[i] = C[i]
-        out.copy_from_slice(&data[IV_LEN..]);
+        buf.copy_from_slice(&data[IV_LEN..]);
 
         // 2) Calculate intermediate values
 
         self.cipher.decrypt_with_backend(Ctx {
             blocks_len,
             block,
-            out,
+            buf,
         });
 
         // 3) Output the results
@@ -120,9 +129,9 @@ impl<C: BlockCipherDecrypt<BlockSize = U16>> Kw<C> {
         let expected_iv = u64::from_ne_bytes(IV);
         let calc_iv = u64::from_ne_bytes(block[..IV_LEN].try_into().unwrap());
         if calc_iv == expected_iv {
-            Ok(())
+            Ok(buf)
         } else {
-            out.fill(0);
+            buf.fill(0);
             Err(Error::IntegrityCheckFailed)
         }
     }

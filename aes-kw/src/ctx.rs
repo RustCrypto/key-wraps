@@ -7,7 +7,7 @@ use aes::cipher::{
 pub(crate) struct Ctx<'a> {
     pub(crate) blocks_len: usize,
     pub(crate) block: &'a mut Block<Self>,
-    pub(crate) out: &'a mut [u8],
+    pub(crate) buf: &'a mut [u8],
 }
 
 impl BlockSizeUser for Ctx<'_> {
@@ -19,7 +19,7 @@ impl BlockCipherEncClosure for Ctx<'_> {
     #[inline(always)]
     fn call<B: BlockCipherEncBackend<BlockSize = U16>>(self, backend: &B) {
         for j in 0..=5 {
-            for (i, chunk) in self.out.chunks_mut(SEMIBLOCK_SIZE).skip(1).enumerate() {
+            for (i, chunk) in self.buf.chunks_mut(SEMIBLOCK_SIZE).skip(1).enumerate() {
                 // A | R[i]
                 self.block[IV_LEN..].copy_from_slice(chunk);
                 // B = AES(K, ..)
@@ -43,7 +43,7 @@ impl BlockCipherDecClosure for Ctx<'_> {
     #[inline(always)]
     fn call<B: BlockCipherDecBackend<BlockSize = U16>>(self, backend: &B) {
         for j in (0..=5).rev() {
-            for (i, chunk) in self.out.chunks_mut(SEMIBLOCK_SIZE).enumerate().rev() {
+            for (i, chunk) in self.buf.chunks_mut(SEMIBLOCK_SIZE).enumerate().rev() {
                 // A ^ t
                 let t = (self.blocks_len * j + (i + 1)) as u64;
                 for (ai, ti) in self.block[..IV_LEN].iter_mut().zip(&t.to_be_bytes()) {
