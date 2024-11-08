@@ -58,7 +58,7 @@ RFC5649 § 1 describes AES-KWP as follows:
 
 ```rust
 use hex_literal::hex;
-use aes_kw::{KekAes128, KeyInit};
+use aes_kw::{KwAes128, KeyInit};
 
 // Key which is used to perform wrappin
 let kek_key: [u8; 16] = hex!("000102030405060708090A0B0C0D0E0F");
@@ -68,7 +68,7 @@ let key: [u8; 16] = hex!("00112233445566778899AABBCCDDEEFF");
 let wkey: [u8; 24] = hex!("1FA68B0A8112B447AEF34BD8FB5A7B829D3E862371D2CFE5");
 
 
-let kw = KekAes128::new(&kek_key.into());
+let kw = KwAes128::new(&kek_key.into());
 
 let mut buf = [0u8; 24];
 kw.wrap(&key, &mut buf).unwrap();
