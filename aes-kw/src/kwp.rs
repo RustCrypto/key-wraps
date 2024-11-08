@@ -5,6 +5,9 @@ use aes::cipher::{
     Block, BlockCipherDecrypt, BlockCipherEncrypt,
 };
 
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
+
 /// Maximum length of the AES-KWP input data (2^32 bytes).
 const KWP_MAX_LEN: usize = u32::MAX as usize;
 
@@ -96,6 +99,16 @@ impl<C: BlockCipherEncrypt<BlockSize = U16>> AesKwp<C> {
 
         Ok(buf)
     }
+
+    /// Computes [`Self::wrap`], allocating a [`Vec`] for the return value.
+    #[cfg(feature = "alloc")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    pub fn wrap_vec(&self, data: &[u8]) -> Result<Vec<u8>, Error> {
+        let n = data.len().div_ceil(SEMIBLOCK_SIZE);
+        let mut out = vec![0u8; n * SEMIBLOCK_SIZE + IV_LEN];
+        self.wrap(data, &mut out)?;
+        Ok(out)
+    }
 }
 
 impl<C: BlockCipherDecrypt<BlockSize = U16>> AesKwp<C> {
@@ -176,5 +189,21 @@ impl<C: BlockCipherDecrypt<BlockSize = U16>> AesKwp<C> {
         }
 
         Ok(res)
+    }
+
+    /// Computes [`Self::unwrap`], allocating a [`Vec`] for the return value.
+    #[cfg(feature = "alloc")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    pub fn unwrap_vec(&self, data: &[u8]) -> Result<Vec<u8>, Error> {
+        let out_len = data
+            .len()
+            .checked_sub(IV_LEN)
+            .ok_or(Error::InvalidDataSize)?;
+
+        let mut out = vec![0u8; out_len];
+
+        let out_len = self.unwrap(data, &mut out)?.len();
+        out.truncate(out_len);
+        Ok(out)
     }
 }

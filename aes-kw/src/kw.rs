@@ -5,6 +5,9 @@ use aes::cipher::{
     Block, BlockCipherDecrypt, BlockCipherEncrypt,
 };
 
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
+
 /// Default Initial Value for AES-KW as defined in RFC3394 § 2.2.3.1.
 ///
 /// <https://datatracker.ietf.org/doc/html/rfc3394#section-2.2.3.1>
@@ -82,6 +85,15 @@ impl<C: BlockCipherEncrypt<BlockSize = U16>> AesKw<C> {
 
         Ok(buf)
     }
+
+    /// Computes [`Self::wrap`], allocating a [`Vec`] for the return value.
+    #[cfg(feature = "alloc")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    pub fn wrap_vec(&self, data: &[u8]) -> Result<Vec<u8>, Error> {
+        let mut out = vec![0u8; data.len() + IV_LEN];
+        self.wrap(data, &mut out)?;
+        Ok(out)
+    }
 }
 
 impl<C: BlockCipherDecrypt<BlockSize = U16>> AesKw<C> {
@@ -134,5 +146,19 @@ impl<C: BlockCipherDecrypt<BlockSize = U16>> AesKw<C> {
             buf.fill(0);
             Err(Error::IntegrityCheckFailed)
         }
+    }
+
+    /// Computes [`Self::unwrap`], allocating a [`Vec`] for the return value.
+    #[cfg(feature = "alloc")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    pub fn unwrap_vec(&self, data: &[u8]) -> Result<Vec<u8>, Error> {
+        let out_len = data
+            .len()
+            .checked_sub(IV_LEN)
+            .ok_or(Error::InvalidDataSize)?;
+
+        let mut out = vec![0u8; out_len];
+        self.unwrap(data, &mut out)?;
+        Ok(out)
     }
 }

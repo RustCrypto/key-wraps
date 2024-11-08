@@ -21,7 +21,9 @@ const-oid = { version = "0.10.0-rc.3", optional = true }
 hex-literal = "0.3"
 
 [features]
-default = ["oid"]
+default = ["std", "oid"]
+alloc = []
+std = ["alloc"]
 oid = ["dep:const-oid"]
 
 [package.metadata.docs.rs]
