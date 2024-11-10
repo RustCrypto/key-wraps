@@ -1,3 +1,7 @@
+use aes::{
+    cipher::{array::Array, typenum::Sum, Key, KeySizeUser},
+    Aes128,
+};
 use aes_kw::{Error, KeyInit, KwAes128, KwAes192, KwAes256};
 use hex_literal::hex;
 use std::assert_eq;
@@ -106,4 +110,20 @@ fn error_integrity_check_failed() {
     let res = kek.unwrap(&output, &mut buf);
 
     assert_eq!(res, Err(Error::IntegrityCheckFailed));
+}
+
+#[test]
+fn wrapped_buffer() {
+    let key = Key::<Aes128>::try_from(hex!("000102030405060708090A0B0C0D0E0F")).unwrap();
+    let inner = hex!("00112233445566778899AABBCCDDEEFF");
+    let expected = hex!("1FA68B0A8112B447AEF34BD8FB5A7B829D3E862371D2CFE5");
+
+    let mut buf = Array::<u8, Sum<<Aes128 as KeySizeUser>::KeySize, aes_kw::IV>>::default();
+
+    let kw = <KwAes128>::new(&key);
+    let ct = kw.wrap(&inner, &mut buf).unwrap();
+    assert_eq!(expected, ct);
+    assert_eq!(ct.len(), buf.len());
+    let pt = kw.unwrap(&expected, &mut buf).unwrap();
+    assert_eq!(inner, pt);
 }

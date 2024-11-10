@@ -24,6 +24,8 @@ pub use aes;
 pub use aes::cipher;
 pub use aes::cipher::{crypto_common::InnerInit, KeyInit};
 
+use aes::cipher::{consts::U8, typenum::Unsigned};
+
 /// AES-128 key wrapping
 pub type KwAes128 = AesKw<aes::Aes128>;
 /// AES-192 key wrapping
@@ -43,7 +45,10 @@ pub type KwpAes256 = AesKwp<aes::Aes256>;
 /// From NIST SP 800-38F § 4.1:
 ///
 /// > semiblock: given a block cipher, a bit string whose length is half of the block size.
-pub const SEMIBLOCK_SIZE: usize = 8;
+pub const SEMIBLOCK_SIZE: usize = IV::USIZE;
 
 /// Size of an AES-KW and AES-KWP initialization vector in bytes.
 pub const IV_LEN: usize = SEMIBLOCK_SIZE;
+
+/// Size of an AES-KW and AES-KWP initialization vector in bytes.
+pub type IV = U8;
