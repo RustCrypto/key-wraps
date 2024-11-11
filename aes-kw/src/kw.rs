@@ -1,8 +1,11 @@
-use crate::{ctx::Ctx, Error, IV_LEN, SEMIBLOCK_SIZE};
+use core::ops::{Add, Rem};
+
+use crate::{ctx::Ctx, error::IntegrityCheckFailed, Error, IvLen, IV_LEN};
 use aes::cipher::{
+    array::ArraySize,
     crypto_common::{InnerInit, InnerUser},
-    typenum::U16,
-    Block, BlockCipherDecrypt, BlockCipherEncrypt,
+    typenum::{Mod, NonZero, Sum, Zero, U16},
+    Array, Block, BlockCipherDecrypt, BlockCipherEncrypt,
 };
 
 /// Default Initial Value for AES-KW as defined in RFC3394 § 2.2.3.1.
@@ -22,6 +25,9 @@ use aes::cipher::{
 /// then the unwrap must return an error and not return any key data.
 /// ```
 const IV: [u8; IV_LEN] = [0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6];
+
+/// Type alias representing wrapped key roughly equivalent to `[u8; N + IV_LEN]`.
+pub type KwWrappedKey<N> = Array<u8, Sum<N, IvLen>>;
 
 /// AES Key Wrapper (KW), as defined in [RFC 3394].
 ///
@@ -43,24 +49,9 @@ impl<C> InnerInit for AesKw<C> {
 }
 
 impl<C: BlockCipherEncrypt<BlockSize = U16>> AesKw<C> {
-    /// Wrap `data` and write result to `buf`.
-    ///
-    /// Returns slice which points to `buf` and contains wrapped data.
-    ///
-    /// Length of `data` must be multiple of [`SEMIBLOCK_SIZE`] and bigger than zero.
-    /// Length of `buf` must be bigger or equal to `data.len() + IV_LEN`.
-    #[inline]
-    pub fn wrap<'a>(&self, data: &[u8], buf: &'a mut [u8]) -> Result<&'a [u8], Error> {
-        let blocks_len = data.len() / SEMIBLOCK_SIZE;
-        let blocks_rem = data.len() % SEMIBLOCK_SIZE;
-        if blocks_rem != 0 {
-            return Err(Error::InvalidDataSize);
-        }
-
-        let expected_len = data.len() + IV_LEN;
-        let buf = buf
-            .get_mut(..expected_len)
-            .ok_or(Error::InvalidOutputSize { expected_len })?;
+    /// Wrap key into `buf` assuming that it has correct length.
+    fn wrap_key_trusted(&self, key: &[u8], buf: &mut [u8]) {
+        let blocks_len = key.len() / IV_LEN;
 
         // 1) Initialize variables
 
@@ -69,7 +60,7 @@ impl<C: BlockCipherEncrypt<BlockSize = U16>> AesKw<C> {
         block[..IV_LEN].copy_from_slice(&IV);
 
         // 2) Calculate intermediate values
-        buf[IV_LEN..].copy_from_slice(data);
+        buf[IV_LEN..].copy_from_slice(key);
 
         self.cipher.encrypt_with_backend(Ctx {
             blocks_len,
@@ -79,42 +70,79 @@ impl<C: BlockCipherEncrypt<BlockSize = U16>> AesKw<C> {
 
         // 3) Output the results
         buf[..IV_LEN].copy_from_slice(&block[..IV_LEN]);
-
-        Ok(buf)
     }
-}
 
-impl<C: BlockCipherDecrypt<BlockSize = U16>> AesKw<C> {
-    /// Unwrap `data` and write result to `buf`.
+    /// Wrap `key` and write result to `buf`.
     ///
-    /// Returns slice which points to `buf` and contains unwrapped data.
+    /// Returns slice which points to `buf` and contains wrapped data.
     ///
-    /// Length of `data` must be multiple of [`SEMIBLOCK_SIZE`] and bigger than zero.
-    /// Length of `buf` must be bigger or equal to `data.len()`.
+    /// Length of `data` must be multiple of [`IV_LEN`] and bigger than zero.
+    /// Length of `buf` must be bigger or equal to `data.len() + IV_LEN`.
     #[inline]
-    pub fn unwrap<'a>(&self, data: &[u8], buf: &'a mut [u8]) -> Result<&'a [u8], Error> {
-        let blocks_len = data.len() / SEMIBLOCK_SIZE;
-        let blocks_rem = data.len() % SEMIBLOCK_SIZE;
-        if blocks_rem != 0 || blocks_len < 1 {
+    pub fn wrap_key<'a>(&self, key: &[u8], buf: &'a mut [u8]) -> Result<&'a [u8], Error> {
+        let blocks_rem = key.len() % IV_LEN;
+        if blocks_rem != 0 {
             return Err(Error::InvalidDataSize);
         }
 
-        // 0) Prepare inputs
-
-        let blocks_len = blocks_len - 1;
-
-        let expected_len = blocks_len * SEMIBLOCK_SIZE;
+        let expected_len = key.len() + IV_LEN;
         let buf = buf
             .get_mut(..expected_len)
             .ok_or(Error::InvalidOutputSize { expected_len })?;
 
+        self.wrap_key_trusted(key, buf);
+
+        Ok(buf)
+    }
+
+    /// Wrap fixed-size key `key` and return wrapped key.
+    ///
+    /// This method is roughly equivalent to:
+    /// ```ignore
+    /// const fn check_key_size(n: usize) -> usize {
+    ///     assert!(n != 0 && n % IV_LEN == 0);
+    ///     0
+    /// }
+    ///
+    /// pub fn wrap_fixed_key<const N: usize>(
+    ///     &self,
+    ///     key: &[u8; N],
+    /// ) -> [u8; N + IV_LEN]
+    /// where
+    ///     [(); check_key_size(N)]: Sized,
+    /// { ... }
+    /// ```
+    /// but uses [`hybrid_array::Array`][Array] instead of built-in arrays
+    /// to work around current limitations of the const generics system.
+    #[inline]
+    pub fn wrap_fixed_key<N>(&self, key: &Array<u8, N>) -> KwWrappedKey<N>
+    where
+        N: ArraySize + NonZero + Add<IvLen> + Rem<IvLen>,
+        Sum<N, IvLen>: ArraySize,
+        Mod<N, IvLen>: Zero,
+    {
+        let mut buf = KwWrappedKey::<N>::default();
+        self.wrap_key_trusted(key, &mut buf);
+        buf
+    }
+}
+
+impl<C: BlockCipherDecrypt<BlockSize = U16>> AesKw<C> {
+    /// Unwrap key into `buf` assuming that it has correct length.
+    fn unwrap_key_trusted<'a>(
+        &self,
+        wkey: &[u8],
+        buf: &'a mut [u8],
+    ) -> Result<&'a [u8], IntegrityCheckFailed> {
+        let blocks_len = buf.len() / IV_LEN;
+
         // 1) Initialize variables
 
         let block = &mut Block::<C>::default();
-        block[..IV_LEN].copy_from_slice(&data[..IV_LEN]);
+        block[..IV_LEN].copy_from_slice(&wkey[..IV_LEN]);
 
         //   for i = 1 to n: R[i] = C[i]
-        buf.copy_from_slice(&data[IV_LEN..]);
+        buf.copy_from_slice(&wkey[IV_LEN..]);
 
         // 2) Calculate intermediate values
 
@@ -132,7 +160,67 @@ impl<C: BlockCipherDecrypt<BlockSize = U16>> AesKw<C> {
             Ok(buf)
         } else {
             buf.fill(0);
-            Err(Error::IntegrityCheckFailed)
+            Err(IntegrityCheckFailed)
         }
+    }
+
+    /// Unwrap `data` and write result to `buf`.
+    ///
+    /// Returns slice which points to `buf` and contains unwrapped data.
+    ///
+    /// Length of `data` must be multiple of [`IV_LEN`] and bigger than zero.
+    /// Length of `buf` must be bigger or equal to `data.len()`.
+    #[inline]
+    pub fn unwrap_key<'a>(&self, wkey: &[u8], buf: &'a mut [u8]) -> Result<&'a [u8], Error> {
+        let blocks_len = wkey.len() / IV_LEN;
+        let blocks_rem = wkey.len() % IV_LEN;
+        if blocks_rem != 0 || blocks_len < 1 {
+            return Err(Error::InvalidDataSize);
+        }
+
+        let blocks_len = blocks_len - 1;
+        let expected_len = blocks_len * IV_LEN;
+        let buf = buf
+            .get_mut(..expected_len)
+            .ok_or(Error::InvalidOutputSize { expected_len })?;
+
+        self.unwrap_key_trusted(wkey, buf)
+            .map_err(|_| Error::IntegrityCheckFailed)?;
+
+        Ok(buf)
+    }
+
+    /// Unwrap key in `data` and return unwrapped key.
+    ///
+    /// This method is roughly equivalent to:
+    /// ```ignore
+    /// const fn check_key_size(n: usize) -> usize {
+    ///     assert!(n != 0 && n % IV_LEN == 0);
+    ///     0
+    /// }
+    ///
+    /// fn unwrap_fixed_key<const N: usize>(
+    ///     &self,
+    ///     data: &[u8; N + IV_LEN],
+    /// ) -> [u8; N]
+    /// where
+    ///     [(); check_key_size(N)]: Sized,
+    /// { ... }
+    /// ```
+    /// but uses [`hybrid_array::Array`][Array] instead of built-in arrays
+    /// to work around current limitations of the const generics system.
+    #[inline]
+    pub fn unwrap_fixed_key<N>(
+        &self,
+        wkey: &KwWrappedKey<N>,
+    ) -> Result<Array<u8, N>, IntegrityCheckFailed>
+    where
+        N: ArraySize + NonZero + Add<IvLen> + Rem<IvLen>,
+        Sum<N, IvLen>: ArraySize,
+        Mod<N, IvLen>: Zero,
+    {
+        let mut buf = Array::<u8, N>::default();
+        self.unwrap_key_trusted(wkey, &mut buf)?;
+        Ok(buf)
     }
 }

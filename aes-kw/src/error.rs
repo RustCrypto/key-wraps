@@ -19,15 +19,25 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::InvalidDataSize => write!(f, "data must be a multiple of 64 bits for AES-KW and less than 2^32 bytes for AES-KWP"),
+            Error::InvalidDataSize => f.write_str("data must be a multiple of 64 bits for AES-KW and less than 2^32 bytes for AES-KWP"),
             Error::InvalidOutputSize { expected_len: expected } => {
                 write!(f, "invalid output buffer size: expected {}", expected)
             }
-            Error::IntegrityCheckFailed => {
-                write!(f, "integrity check failed")
-            }
+            Error::IntegrityCheckFailed => f.write_str("integrity check failed"),
         }
     }
 }
 
 impl core::error::Error for Error {}
+
+/// Error that indicates integrity check failure.
+#[derive(Clone, Copy, Debug)]
+pub struct IntegrityCheckFailed;
+
+impl fmt::Display for IntegrityCheckFailed {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("integrity check failed")
+    }
+}
+
+impl core::error::Error for IntegrityCheckFailed {}
