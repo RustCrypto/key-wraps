@@ -8,15 +8,28 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs, rust_2018_idioms)]
 
-use belt_block::{belt_wblock_dec, belt_wblock_enc, BeltBlock};
-use core::fmt;
+use belt_block::{
+    belt_wblock_dec, belt_wblock_enc,
+    cipher::{
+        array::ArraySize,
+        consts::U16,
+        typenum::{GrEq, IsGreaterOrEqual, NonZero, Sum, Unsigned},
+        Array,
+    },
+    BeltBlock,
+};
+use core::{fmt, ops::Add};
 
 pub use belt_block::cipher::{self, Key, KeyInit, KeySizeUser};
 
+/// Size of wrapping "header" represented as a `typenum` type.
+pub type IvLen = U16;
+/// Type alias representing wrapped key roughly equivalent to `[u8; N + IV_LEN]`.
+pub type WrappedKey<N> = Array<u8, Sum<N, IvLen>>;
 /// Size of wrapping "header".
-pub const IV_LEN: usize = 16;
+pub const IV_LEN: usize = IvLen::USIZE;
 
-/// BelT Key Wrap instancce as defined in STB 34.101.34-2020.
+/// BelT Key Wrap instance as defined in STB 34.101.34-2020.
 #[derive(Clone, Copy, PartialEq)]
 pub struct BeltKwp {
     key: [u32; 8],
@@ -60,6 +73,36 @@ impl BeltKwp {
         Ok(out)
     }
 
+    /// Wrap fixed-size key `x` with given `iv` and return resulting array.
+    ///
+    /// This method is roughly equivalent to:
+    /// ```ignore
+    /// fn wrap_fixed_key<const N: usize>(
+    ///     &self,
+    ///     x: &[u8; N],
+    ///     iv: &[u8; IV_LEN],
+    /// ) -> [u8; N + IV_LEN]
+    /// where
+    ///     // This bound enforces that N is not smaller than `IV_LEN`
+    ///     [(); N - IV_LEN]: Sized,
+    /// { ... }
+    /// ```
+    #[inline]
+    pub fn wrap_fixed_key<N>(&self, x: &Array<u8, N>, iv: &[u8; IV_LEN]) -> WrappedKey<N>
+    where
+        N: ArraySize + Add<U16> + IsGreaterOrEqual<IvLen>,
+        Sum<N, U16>: ArraySize,
+        GrEq<N, IvLen>: NonZero,
+    {
+        let mut res = WrappedKey::<N>::default();
+        let (l, r) = res.split_at_mut(x.len());
+        l.copy_from_slice(x);
+        r.copy_from_slice(iv);
+
+        belt_wblock_enc(&mut res, &self.key).expect("res has correct size");
+        res
+    }
+
     /// Unwrap key in `y` with given `iv` and write result to `out`.
     ///
     /// Size of wrapped data `y` must be bigger or equal to 32 bytes.
@@ -95,6 +138,48 @@ impl BeltKwp {
             key.fill(0);
             rem.fill(0);
             Err(Error::IntegrityCheckFailed)
+        }
+    }
+
+    /// Unwrap key in `y` with given `iv` and return resulting key.
+    ///
+    /// This method is roughly equivalent to:
+    /// ```ignore
+    /// fn unwrap_fixed_key<const N: usize>(
+    ///     &self,
+    ///     x: &[u8; N + IV_LEN],
+    ///     iv: &[u8; IV_LEN],
+    /// ) -> [u8; N]
+    /// where
+    ///     // This bound enforces that N is not smaller than `IV_LEN`
+    ///     [(); N - IV_LEN]: Sized,
+    /// { ... }
+    /// ```
+    #[inline]
+    pub fn unwrap_fixed_key<N>(
+        &self,
+        y: &WrappedKey<N>,
+        iv: &[u8; IV_LEN],
+    ) -> Result<Array<u8, N>, IntegrityCheckFailed>
+    where
+        N: ArraySize + Add<U16> + IsGreaterOrEqual<IvLen>,
+        Sum<N, U16>: ArraySize,
+        GrEq<N, IvLen>: NonZero,
+    {
+        let mut y = y.clone();
+
+        belt_wblock_dec(&mut y, &self.key).expect("y has correct size");
+
+        // We could've used `Array:split`, but it's easier to do it this way
+        let (key, rem) = y.split_at(N::USIZE);
+
+        let calc_iv = u128::from_ne_bytes(rem.try_into().unwrap());
+        let expected_iv = u128::from_ne_bytes(*iv);
+        // We expect that comparison of `u128`s will be constant-time
+        if calc_iv == expected_iv {
+            Ok(key.try_into().unwrap())
+        } else {
+            Err(IntegrityCheckFailed)
         }
     }
 }
@@ -137,15 +222,25 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::InvalidDataSize => write!(f, "invalid data size"),
+            Error::InvalidDataSize => f.write_str("invalid data size"),
             Error::InvalidOutputSize { expected } => {
                 write!(f, "invalid output buffer size: expected {expected}")
             }
-            Error::IntegrityCheckFailed => {
-                write!(f, "integrity check failed")
-            }
+            Error::IntegrityCheckFailed => f.write_str("integrity check failed"),
         }
     }
 }
 
 impl core::error::Error for Error {}
+
+/// Error that indicates integrity check failure.
+#[derive(Clone, Copy, Debug)]
+pub struct IntegrityCheckFailed;
+
+impl fmt::Display for IntegrityCheckFailed {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("integrity check failed")
+    }
+}
+
+impl core::error::Error for IntegrityCheckFailed {}
