@@ -33,13 +33,21 @@ let y: [u8; 48] = hex!(
 
 let mut buf = [0u8; 48];
 
-let kw = belt_kwp::BeltKwp::new(&(k.into()));
+let kw = belt_kwp::BeltKwp::new(&k.into());
 
 let wrapped_key = kw.wrap_key(&x, &i, &mut buf).unwrap();
-assert_eq!(y, wrapped_key);
+assert_eq!(wrapped_key, y);
 
 let unwrapped_key = kw.unwrap_key(&y, &i, &mut buf).unwrap();
-assert_eq!(x, unwrapped_key);
+assert_eq!(unwrapped_key, x);
+
+// If key size is known at compile time, you can use the fixed methods:
+use belt_kwp::cipher::consts::U32;
+
+let wrapped_key = kw.wrap_fixed_key::<U32>(&x.into(), &i);
+assert_eq!(wrapped_key, y);
+let unwrapped_key = kw.unwrap_fixed_key::<U32>(&wrapped_key, &i).unwrap();
+assert_eq!(unwrapped_key, x);
 ```
 
 ## Minimum Supported Rust Version
