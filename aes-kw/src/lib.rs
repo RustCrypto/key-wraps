@@ -16,7 +16,9 @@ mod error;
 mod kw;
 mod kwp;
 
-pub use error::Error;
+use aes::cipher::consts::U8;
+use aes::cipher::typenum::Unsigned;
+pub use error::{Error, IntegrityCheckFailed};
 pub use kw::AesKw;
 pub use kwp::AesKwp;
 
@@ -38,12 +40,11 @@ pub type KwpAes192 = AesKwp<aes::Aes192>;
 /// AES-256 key wrapping
 pub type KwpAes256 = AesKwp<aes::Aes256>;
 
-/// Size of an AES "semiblock" in bytes.
+/// Size of an AES-KW and AES-KWP initialization vector in bytes represented as a `typenum` type.
+pub type IvLen = U8;
+/// Size of an AES-KW and AES-KWP initialization vector in bytes.
 ///
-/// From NIST SP 800-38F § 4.1:
+/// This value is equal to "semiblock" size. From NIST SP 800-38F § 4.1:
 ///
 /// > semiblock: given a block cipher, a bit string whose length is half of the block size.
-pub const SEMIBLOCK_SIZE: usize = 8;
-
-/// Size of an AES-KW and AES-KWP initialization vector in bytes.
-pub const IV_LEN: usize = SEMIBLOCK_SIZE;
+pub const IV_LEN: usize = IvLen::USIZE;

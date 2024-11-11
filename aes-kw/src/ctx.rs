@@ -1,4 +1,4 @@
-use crate::{IV_LEN, SEMIBLOCK_SIZE};
+use crate::IV_LEN;
 use aes::cipher::{
     typenum::U16, Block, BlockCipherDecBackend, BlockCipherDecClosure, BlockCipherEncBackend,
     BlockCipherEncClosure, BlockSizeUser,
@@ -19,7 +19,7 @@ impl BlockCipherEncClosure for Ctx<'_> {
     #[inline(always)]
     fn call<B: BlockCipherEncBackend<BlockSize = U16>>(self, backend: &B) {
         for j in 0..=5 {
-            for (i, chunk) in self.buf.chunks_mut(SEMIBLOCK_SIZE).skip(1).enumerate() {
+            for (i, chunk) in self.buf.chunks_mut(IV_LEN).skip(1).enumerate() {
                 // A | R[i]
                 self.block[IV_LEN..].copy_from_slice(chunk);
                 // B = AES(K, ..)
@@ -43,7 +43,7 @@ impl BlockCipherDecClosure for Ctx<'_> {
     #[inline(always)]
     fn call<B: BlockCipherDecBackend<BlockSize = U16>>(self, backend: &B) {
         for j in (0..=5).rev() {
-            for (i, chunk) in self.buf.chunks_mut(SEMIBLOCK_SIZE).enumerate().rev() {
+            for (i, chunk) in self.buf.chunks_mut(IV_LEN).enumerate().rev() {
                 // A ^ t
                 let t = (self.blocks_len * j + (i + 1)) as u64;
                 for (ai, ti) in self.block[..IV_LEN].iter_mut().zip(&t.to_be_bytes()) {

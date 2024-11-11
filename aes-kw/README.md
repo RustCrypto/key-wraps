@@ -71,12 +71,20 @@ let wkey: [u8; 24] = hex!("1FA68B0A8112B447AEF34BD8FB5A7B829D3E862371D2CFE5");
 let kw = KwAes128::new(&kw_key.into());
 
 let mut buf = [0u8; 24];
-kw.wrap(&key, &mut buf).unwrap();
+kw.wrap_key(&key, &mut buf).unwrap();
 assert_eq!(buf, wkey);
 
 let mut buf = [0u8; 16];
-kw.unwrap(&wkey, &mut buf).unwrap();
+kw.unwrap_key(&wkey, &mut buf).unwrap();
 assert_eq!(buf, key);
+
+// If key size is known at compile time, you can use the fixed methods:
+use aes_kw::cipher::consts::U16;
+
+let wrapped_key = kw.wrap_fixed_key::<U16>(&key.into());
+assert_eq!(wrapped_key, wkey);
+let unwrapped_key = kw.unwrap_fixed_key::<U16>(&wrapped_key).unwrap();
+assert_eq!(unwrapped_key, key);
 ```
 
 ## Minimum Supported Rust Version
