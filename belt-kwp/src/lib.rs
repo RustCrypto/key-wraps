@@ -90,8 +90,8 @@ impl BeltKwp {
     #[inline]
     pub fn wrap_fixed_key<N>(&self, x: &Array<u8, N>, iv: &[u8; IV_LEN]) -> WrappedKey<N>
     where
-        N: ArraySize + Add<U16> + IsGreaterOrEqual<IvLen>,
-        Sum<N, U16>: ArraySize,
+        N: ArraySize + Add<IvLen> + IsGreaterOrEqual<IvLen>,
+        Sum<N, IvLen>: ArraySize,
         GrEq<N, IvLen>: NonZero,
     {
         let mut res = WrappedKey::<N>::default();
@@ -162,8 +162,8 @@ impl BeltKwp {
         iv: &[u8; IV_LEN],
     ) -> Result<Array<u8, N>, IntegrityCheckFailed>
     where
-        N: ArraySize + Add<U16> + IsGreaterOrEqual<IvLen>,
-        Sum<N, U16>: ArraySize,
+        N: ArraySize + Add<IvLen> + IsGreaterOrEqual<IvLen>,
+        Sum<N, IvLen>: ArraySize,
         GrEq<N, IvLen>: NonZero,
     {
         let mut y = y.clone();
