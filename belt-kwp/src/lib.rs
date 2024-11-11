@@ -87,6 +87,8 @@ impl BeltKwp {
     ///     [(); N - IV_LEN]: Sized,
     /// { ... }
     /// ```
+    /// but uses [`hybrid_array::Array`][Array] instead of built-in arrays
+    /// to work around current limitations of the const generics system.
     #[inline]
     pub fn wrap_fixed_key<N>(&self, x: &Array<u8, N>, iv: &[u8; IV_LEN]) -> WrappedKey<N>
     where
@@ -155,6 +157,8 @@ impl BeltKwp {
     ///     [(); N - IV_LEN]: Sized,
     /// { ... }
     /// ```
+    /// but uses [`hybrid_array::Array`][Array] instead of built-in arrays
+    /// to work around current limitations of the const generics system.
     #[inline]
     pub fn unwrap_fixed_key<N>(
         &self,
