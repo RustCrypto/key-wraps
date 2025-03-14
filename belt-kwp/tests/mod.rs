@@ -1,6 +1,6 @@
 //! Test vectors from STB 4.101.31-2020 (section A.10, tables A.21-A.22):
 //! https://apmi.bsu.by/assets/files/std/belt-spec371.pdf
-use belt_kwp::{cipher::consts::U32, BeltKwp, KeyInit};
+use belt_kwp::{BeltKwp, KeyInit, cipher::consts::U32};
 use hex_literal::hex;
 
 #[test]

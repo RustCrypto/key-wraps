@@ -1,12 +1,12 @@
 use core::ops::{Add, Div, Mul};
 
-use crate::{ctx::Ctx, Error, IntegrityCheckFailed, IvLen, IV_LEN};
+use crate::{Error, IV_LEN, IntegrityCheckFailed, IvLen, ctx::Ctx};
 use aes::cipher::{
+    Array, Block, BlockCipherDecrypt, BlockCipherEncrypt,
     array::ArraySize,
-    consts::{B1, U4294967296, U7},
+    consts::{B1, U7, U4294967296},
     crypto_common::{InnerInit, InnerUser},
     typenum::{Add1, IsLess, Le, NonZero, Prod, Quot, Sum, U16},
-    Array, Block, BlockCipherDecrypt, BlockCipherEncrypt,
 };
 
 /// Maximum length of the AES-KWP input data (2^32 bytes) represented as a `typenum` type.

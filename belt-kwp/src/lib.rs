@@ -9,14 +9,13 @@
 #![warn(missing_docs, rust_2018_idioms)]
 
 use belt_block::{
-    belt_wblock_dec, belt_wblock_enc,
+    BeltBlock, belt_wblock_dec, belt_wblock_enc,
     cipher::{
+        Array,
         array::ArraySize,
         consts::U16,
         typenum::{GrEq, IsGreaterOrEqual, NonZero, Sum, Unsigned},
-        Array,
     },
-    BeltBlock,
 };
 use core::{fmt, ops::Add};
 

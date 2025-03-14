@@ -1,4 +1,4 @@
-use aes_kw::{cipher::consts, Error, KeyInit, KwpAes128, KwpAes192, KwpAes256};
+use aes_kw::{Error, KeyInit, KwpAes128, KwpAes192, KwpAes256, cipher::consts};
 use hex_literal::hex;
 use std::assert_eq;
 

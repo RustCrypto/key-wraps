@@ -1,7 +1,7 @@
 use crate::IV_LEN;
 use aes::cipher::{
-    typenum::U16, Block, BlockCipherDecBackend, BlockCipherDecClosure, BlockCipherEncBackend,
-    BlockCipherEncClosure, BlockSizeUser,
+    Block, BlockCipherDecBackend, BlockCipherDecClosure, BlockCipherEncBackend,
+    BlockCipherEncClosure, BlockSizeUser, typenum::U16,
 };
 
 pub(crate) struct Ctx<'a> {

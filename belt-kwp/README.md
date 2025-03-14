@@ -50,13 +50,6 @@ let unwrapped_key = kw.unwrap_fixed_key::<U32>(&wrapped_key, &i).unwrap();
 assert_eq!(unwrapped_key, x);
 ```
 
-## Minimum Supported Rust Version
-
-This crate requires **Rust 1.81** at a minimum.
-
-We may change the MSRV in the future, but it will be accompanied by a minor
-version bump.
-
 ## License
 
 Licensed under either of:
@@ -79,6 +72,6 @@ dual licensed as above, without any additional terms or conditions.
 [docs-image]: https://docs.rs/belt-kwp/badge.svg
 [docs-link]: https://docs.rs/belt-kwp/
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
-[rustc-image]: https://img.shields.io/badge/rustc-1.81+-blue.svg
+[rustc-image]: https://img.shields.io/badge/rustc-1.85+-blue.svg
 [build-image]: https://github.com/RustCrypto/key-wraps/actions/workflows/belt-kwp.yml/badge.svg
 [build-link]: https://github.com/RustCrypto/key-wraps/actions/workflows/belt-kwp.yml

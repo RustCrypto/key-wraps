@@ -1,11 +1,11 @@
 use core::ops::{Add, Rem};
 
-use crate::{ctx::Ctx, error::IntegrityCheckFailed, Error, IvLen, IV_LEN};
+use crate::{Error, IV_LEN, IvLen, ctx::Ctx, error::IntegrityCheckFailed};
 use aes::cipher::{
+    Array, Block, BlockCipherDecrypt, BlockCipherEncrypt,
     array::ArraySize,
     crypto_common::{InnerInit, InnerUser},
-    typenum::{Mod, NonZero, Sum, Zero, U16},
-    Array, Block, BlockCipherDecrypt, BlockCipherEncrypt,
+    typenum::{Mod, NonZero, Sum, U16, Zero},
 };
 
 /// Default Initial Value for AES-KW as defined in RFC3394 § 2.2.3.1.

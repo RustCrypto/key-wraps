@@ -1,6 +1,6 @@
 use aes_kw::{
-    cipher::consts::{U16, U24, U32},
     Error, KeyInit, KwAes128, KwAes192, KwAes256,
+    cipher::consts::{U16, U24, U32},
 };
 use hex_literal::hex;
 use std::assert_eq;
