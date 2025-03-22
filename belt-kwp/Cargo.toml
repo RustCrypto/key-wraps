@@ -8,14 +8,14 @@ repository = "https://github.com/RustCrypto/key-wraps"
 keywords = ["crypto", "BELT-KW", "KW", "BELT-KWP", "KWP"]
 categories = ["cryptography", "no-std"]
 readme = "README.md"
-edition = "2021"
-rust-version = "1.81"
+edition = "2024"
+rust-version = "1.85"
 
 [dependencies]
-belt-block = "=0.2.0-pre.2"
+belt-block = "=0.2.0-pre.3"
 
 [dev-dependencies]
-hex-literal = "0.4"
+hex-literal = "1"
 
 [features]
 alloc = []

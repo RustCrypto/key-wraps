@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump `aes` dependency to v0.9 ([#34])
 - `Kek` type is split into separate `AesKw` and `AesKwp` types ([#40])
 - `wrap` and `unwrap` methods now return resulting slice ([#40])
+- Edition changed to 2024 and MSRV bumped to 1.85 ([#47])
+- Relax MSRV policy and allow MSRV bumps in patch releases
 
 ### Removed
 - `Kek::new` inherent method in favor of implementing `InnerInit` ([#40])
@@ -21,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#34]: https://github.com/RustCrypto/key-wraps/pull/34
 [#35]: https://github.com/RustCrypto/key-wraps/pull/35
 [#40]: https://github.com/RustCrypto/key-wraps/pull/40
+[#47]: https://github.com/RustCrypto/key-wraps/pull/47
 
 ## 0.2.1 (2022-04-20)
 ### Changed
