@@ -12,7 +12,7 @@ edition = "2024"
 rust-version = "1.85"
 
 [dependencies]
-belt-block = "=0.2.0-pre.3"
+belt-block = "0.2.0-rc.0"
 
 [dev-dependencies]
 hex-literal = "1"

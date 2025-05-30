@@ -1,6 +1,6 @@
 [package]
 name = "aes-kw"
-version = "0.3.0-pre"
+version = "0.3.0-rc.0"
 description = "NIST 800-38F AES Key Wrap (KW) and Key Wrap with Padding (KWP) modes"
 authors = ["RustCrypto Developers"]
 license = "MIT OR Apache-2.0"
@@ -13,7 +13,7 @@ edition = "2024"
 rust-version = "1.85"
 
 [dependencies]
-aes = "=0.9.0-pre.3"
+aes = "0.9.0-rc.0"
 
 const-oid = { version = "0.10", optional = true }
 
