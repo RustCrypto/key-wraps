@@ -1,6 +1,6 @@
 [package]
 name = "belt-kwp"
-version = "0.0.0"
+version = "0.1.0-rc.0"
 description = "STB 34.101.30-2020 Key Wrap Algorithm (KWP) implementation using Belt block cipher"
 authors = ["RustCrypto Developers"]
 license = "MIT OR Apache-2.0"
