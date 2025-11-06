@@ -13,7 +13,7 @@ edition = "2024"
 rust-version = "1.85"
 
 [dependencies]
-aes = "0.9.0-rc.1"
+aes = "0.9.0-rc.2"
 const-oid = { version = "0.10", optional = true }
 
 [dev-dependencies]
