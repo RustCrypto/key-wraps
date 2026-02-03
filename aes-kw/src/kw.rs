@@ -4,7 +4,7 @@ use crate::{Error, IV_LEN, IvLen, ctx::Ctx, error::IntegrityCheckFailed};
 use aes::cipher::{
     Array, Block, BlockCipherDecrypt, BlockCipherEncrypt,
     array::ArraySize,
-    crypto_common::{InnerInit, InnerUser},
+    common::{InnerInit, InnerUser},
     typenum::{Mod, NonZero, Sum, U16, Zero},
 };
 

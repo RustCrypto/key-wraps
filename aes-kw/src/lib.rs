@@ -24,7 +24,7 @@ pub use kwp::AesKwp;
 
 pub use aes;
 pub use aes::cipher;
-pub use aes::cipher::{KeyInit, crypto_common::InnerInit};
+pub use aes::cipher::{KeyInit, common::InnerInit};
 
 /// AES-128 key wrapping
 pub type KwAes128 = AesKw<aes::Aes128>;
