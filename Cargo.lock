@@ -16,7 +16,7 @@ dependencies = [
 
 [[package]]
 name = "aes-kw"
-version = "0.3.0-rc.2"
+version = "0.3.0"
 dependencies = [
  "aes",
  "const-oid",
