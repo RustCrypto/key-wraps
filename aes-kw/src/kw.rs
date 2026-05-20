@@ -224,3 +224,6 @@ impl<C: BlockCipherDecrypt<BlockSize = U16>> AesKw<C> {
         Ok(buf)
     }
 }
+
+#[cfg(feature = "zeroize")]
+impl<C: zeroize::ZeroizeOnDrop> zeroize::ZeroizeOnDrop for AesKw<C> {}

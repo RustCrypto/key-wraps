@@ -15,6 +15,7 @@ rust-version = "1.85"
 [dependencies]
 aes = "0.9"
 const-oid = { version = "0.10", optional = true }
+zeroize = { version = "1.5.6", optional = true, default-features = false }
 
 [dev-dependencies]
 hex-literal = "1"
@@ -22,6 +23,7 @@ hex-literal = "1"
 [features]
 default = ["oid"]
 oid = ["dep:const-oid"]
+zeroize = ["dep:zeroize", "aes/zeroize"]
 
 [package.metadata.docs.rs]
 all-features = true

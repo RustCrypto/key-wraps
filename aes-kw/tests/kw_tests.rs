@@ -121,3 +121,16 @@ fn error_integrity_check_failed() {
 
     assert_eq!(res, Err(Error::IntegrityCheckFailed));
 }
+
+#[cfg(feature = "zeroize")]
+#[test]
+fn zeroize_on_drop() {
+    use zeroize::ZeroizeOnDrop;
+
+    fn assert_zeroize_on_drop<T: ZeroizeOnDrop>(_: T) {}
+
+    let key256 = hex!("000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F");
+    let key128 = hex!("000102030405060708090A0B0C0D0E0F");
+    assert_zeroize_on_drop(KwAes256::new(&key256.into()));
+    assert_zeroize_on_drop(KwAes128::new(&key128.into()));
+}
