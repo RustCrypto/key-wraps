@@ -40,6 +40,8 @@ jobs:
 
   minimal-versions:
     uses: RustCrypto/actions/.github/workflows/minimal-versions.yml@master
+    # TODO: re-enable after aes v0.9.1 is released
+    if: false
     with:
         working-directory: ${{ github.workflow }}
 
