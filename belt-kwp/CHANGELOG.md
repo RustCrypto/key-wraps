@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## 0.2.0 (UNRELEASED)
 ### Added
 - Optional `zeroize` support ([#88])
+- Implementation of `Clone`, `Copy`, `Eq`, `PartialEq`, and `Hash` traits for `Error` ([#89])
 
 ### Removed
 - `std` and `alloc` crate features ([#87])
@@ -14,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [#87]: https://github.com/RustCrypto/key-wraps/pull/87
 [#88]: https://github.com/RustCrypto/key-wraps/pull/88
+[#89]: https://github.com/RustCrypto/key-wraps/pull/89
 
 ## 0.1.1 (2026-05-27)
 ### Changed
