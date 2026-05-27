@@ -17,9 +17,5 @@ belt-block = "0.2"
 [dev-dependencies]
 hex-literal = "1"
 
-[features]
-alloc = []
-std = ["alloc"]
-
 [package.metadata.docs.rs]
 all-features = true
