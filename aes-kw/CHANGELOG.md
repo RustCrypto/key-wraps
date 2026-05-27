@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 0.3.1 (2026-05-27)
 ### Added
-- Implementation of `Copy`, `Clone`, and `Hash` traits for `Error` ([[#78]])
+- Implementation of `Copy`, `Clone`, and `Hash` traits for `Error` ([#78])
 - Implementation of `ZeroizeOnDrop` gated on `zeroize` crate feature ([#80])
 
 ### Changed
