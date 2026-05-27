@@ -13,9 +13,13 @@ rust-version = "1.85"
 
 [dependencies]
 belt-block = "0.2"
+zeroize = { version = "1.8", optional = true, default-features = false }
 
 [dev-dependencies]
 hex-literal = "1"
+
+[features]
+zeroize = ["dep:zeroize", "belt-block/zeroize"]
 
 [package.metadata.docs.rs]
 all-features = true
