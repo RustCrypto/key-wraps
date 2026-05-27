@@ -4,7 +4,7 @@
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/6ee8e381/logo.svg",
     html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/6ee8e381/logo.svg"
 )]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![forbid(unsafe_code)]
 #![warn(missing_docs, rust_2018_idioms)]
 
@@ -25,6 +25,9 @@ pub use kwp::AesKwp;
 pub use aes;
 pub use aes::cipher;
 pub use aes::cipher::{KeyInit, common::InnerInit};
+
+#[cfg(feature = "zeroize")]
+pub use zeroize;
 
 /// AES-128 key wrapping
 pub type KwAes128 = AesKw<aes::Aes128>;
