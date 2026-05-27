@@ -35,7 +35,7 @@ dependencies = [
 
 [[package]]
 name = "belt-kwp"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "belt-block",
  "hex-literal",
