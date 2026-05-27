@@ -29,7 +29,7 @@ pub type WrappedKey<N> = Array<u8, Sum<N, IvLen>>;
 pub const IV_LEN: usize = IvLen::USIZE;
 
 /// BelT Key Wrap instance as defined in STB 34.101.34-2020.
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct BeltKwp {
     key: [u32; 8],
 }
@@ -205,6 +205,19 @@ impl KeySizeUser for BeltKwp {
         BeltBlock::key_size()
     }
 }
+
+impl Drop for BeltKwp {
+    fn drop(&mut self) {
+        #[cfg(feature = "zeroize")]
+        {
+            use zeroize::Zeroize;
+            self.key.zeroize();
+        }
+    }
+}
+
+#[cfg(feature = "zeroize")]
+impl zeroize::ZeroizeOnDrop for BeltKwp {}
 
 /// Errors emitted from the wrap and unwrap operations.
 #[derive(Debug)]
