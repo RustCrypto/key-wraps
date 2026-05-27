@@ -6,11 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 0.3.1 (UNRELEASED)
 ### Added
+- Implementation of `Copy`, `Clone`, and `Hash` traits for `Error` ([[#78]])
 - Implementation of `ZeroizeOnDrop` gated on `zeroize` crate feature ([#80])
 
 ### Changed
 - Use `doc_cfg` instead of `doc_auto_cfg` ([#83])
 
+[#78]: https://github.com/RustCrypto/key-wraps/pull/78
 [#80]: https://github.com/RustCrypto/key-wraps/pull/80
 [#83]: https://github.com/RustCrypto/key-wraps/pull/83
 
