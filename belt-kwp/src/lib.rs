@@ -220,7 +220,7 @@ impl Drop for BeltKwp {
 impl zeroize::ZeroizeOnDrop for BeltKwp {}
 
 /// Errors emitted from the wrap and unwrap operations.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub enum Error {
     /// Input data length invalid.
     InvalidDataSize,
