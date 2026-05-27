@@ -274,3 +274,6 @@ impl<C: BlockCipherDecrypt<BlockSize = U16>> AesKwp<C> {
             .map(|res| res.try_into().unwrap())
     }
 }
+
+#[cfg(feature = "zeroize")]
+impl<C: zeroize::ZeroizeOnDrop> zeroize::ZeroizeOnDrop for AesKwp<C> {}

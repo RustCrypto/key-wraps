@@ -26,6 +26,9 @@ pub use aes;
 pub use aes::cipher;
 pub use aes::cipher::{KeyInit, common::InnerInit};
 
+#[cfg(feature = "zeroize")]
+pub use zeroize;
+
 /// AES-128 key wrapping
 pub type KwAes128 = AesKw<aes::Aes128>;
 /// AES-192 key wrapping
