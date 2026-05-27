@@ -6,9 +6,9 @@
 ![Rust Version][rustc-image]
 [![Build Status][build-image]][build-link]
 
-Pure Rust implementation of the `belt-kwp` key wrapping algorithm defined in [STB 4.101.31-2020].
+Pure Rust implementation of the `belt-kwp` key wrapping algorithm defined in [STB 34.101.31-2020].
 
-[STB 4.101.31-2020]: https://apmi.bsu.by/assets/files/std/belt-spec371.pdf
+[STB 34.101.31-2020]: https://apmi.bsu.by/assets/files/std/belt-spec371.pdf
 
 # Examples
 
@@ -67,7 +67,7 @@ dual licensed as above, without any additional terms or conditions.
 
 [//]: # (badges)
 
-[crate-image]: https://img.shields.io/crates/v/bel-kwp.svg
+[crate-image]: https://img.shields.io/crates/v/belt-kwp.svg
 [crate-link]: https://crates.io/crates/belt-kwp
 [docs-image]: https://docs.rs/belt-kwp/badge.svg
 [docs-link]: https://docs.rs/belt-kwp/
