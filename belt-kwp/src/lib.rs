@@ -62,14 +62,37 @@ impl BeltKwp {
                 expected: x.len() + IV_LEN,
             });
         }
-        let out = &mut out[..out_len];
 
-        let (l, r) = out.split_at_mut(x.len());
-        l.copy_from_slice(x);
-        r.copy_from_slice(iv);
+        out[..x.len()].copy_from_slice(x);
+        self.wrap_key_in_place(out, x.len(), iv)
+    }
 
-        belt_wblock_enc(out, &self.key).map_err(|_| Error::InvalidDataSize)?;
-        Ok(out)
+    /// Wrap the key held in `buf[..key_len]` with given `iv` in place and
+    /// return the wrapped key, i.e. `buf[..key_len + IV_LEN]`.
+    ///
+    /// `key_len` must be at least 16 bytes.
+    /// Size of `buf` must be bigger or equal to `key_len` + [`IV_LEN`].
+    #[inline]
+    pub fn wrap_key_in_place<'a>(
+        &self,
+        buf: &'a mut [u8],
+        key_len: usize,
+        iv: &[u8; IV_LEN],
+    ) -> Result<&'a [u8], Error> {
+        if key_len < 16 {
+            return Err(Error::InvalidDataSize);
+        }
+
+        let out_len = key_len.checked_add(IV_LEN).ok_or(Error::InvalidDataSize)?;
+        if buf.len() < out_len {
+            return Err(Error::InvalidOutputSize { expected: out_len });
+        }
+
+        let buf = &mut buf[..out_len];
+        buf[key_len..].copy_from_slice(iv);
+
+        belt_wblock_enc(buf, &self.key).map_err(|_| Error::InvalidDataSize)?;
+        Ok(buf)
     }
 
     /// Wrap fixed-size key `x` with given `iv` and return resulting array.
@@ -126,9 +149,28 @@ impl BeltKwp {
         let out = &mut out[..y.len()];
         out.copy_from_slice(y);
 
-        belt_wblock_dec(out, &self.key).map_err(|_| Error::InvalidDataSize)?;
+        self.unwrap_key_in_place(out, iv)
+    }
 
-        let (key, rem) = out.split_at_mut(y.len() - IV_LEN);
+    /// Unwrap the key held in `buf` with given `iv` in place and return the
+    /// unwrapped key, i.e. `buf[..buf.len() - IV_LEN]`.
+    ///
+    /// Size of `buf` must be bigger or equal to 32 bytes. `buf` is zeroized if
+    /// the integrity check does not pass.
+    #[inline]
+    pub fn unwrap_key_in_place<'a>(
+        &self,
+        buf: &'a mut [u8],
+        iv: &[u8; IV_LEN],
+    ) -> Result<&'a [u8], Error> {
+        if buf.len() < 32 {
+            return Err(Error::InvalidDataSize);
+        }
+
+        belt_wblock_dec(buf, &self.key).map_err(|_| Error::InvalidDataSize)?;
+
+        let key_len = buf.len() - IV_LEN;
+        let (key, rem) = buf.split_at_mut(key_len);
 
         let calc_iv = u128::from_ne_bytes(rem.try_into().unwrap());
         let expected_iv = u128::from_ne_bytes(*iv);
