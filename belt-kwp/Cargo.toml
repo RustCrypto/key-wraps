@@ -1,15 +1,15 @@
 [package]
 name = "belt-kwp"
 version = "0.2.0"
-description = "STB 34.101.30-2020 Key Wrap Algorithm (KWP) implementation using Belt block cipher"
 authors = ["RustCrypto Developers"]
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/RustCrypto/key-wraps"
-keywords = ["crypto", "BELT-KW", "KW", "BELT-KWP", "KWP"]
-categories = ["cryptography", "no-std"]
-readme = "README.md"
 edition = "2024"
 rust-version = "1.85"
+documentation = "https://docs.rs/belt-kwp"
+repository = "https://github.com/RustCrypto/key-wraps"
+license = "MIT OR Apache-2.0"
+keywords = ["crypto", "BELT-KW", "KW", "BELT-KWP", "KWP"]
+categories = ["cryptography", "no-std"]
+description = "STB 34.101.30-2020 Key Wrap Algorithm (KWP) implementation using Belt block cipher"
 
 [dependencies]
 belt-block = "0.2"
