@@ -171,18 +171,20 @@ impl BeltKwp {
     ) -> Result<&'a [u8], Error> {
         belt_wblock_dec(buf, &self.key).map_err(|_| Error::InvalidDataSize)?;
 
-        let (key, calc_iv) = buf
-            .split_last_chunk::<IV_LEN>()
+        let expected_iv = u128::from_ne_bytes(*iv);
+        let (key, iv) = buf
+            .split_last_chunk_mut::<IV_LEN>()
             .expect("`belt_wblock_dec` ensures that `buf.len() >= 32`");
 
-        let calc_iv = u128::from_ne_bytes(*calc_iv);
-        let expected_iv = u128::from_ne_bytes(*iv);
+        let calc_iv = u128::from_ne_bytes(*iv);
 
         // We expect that comparison of `u128`s will be constant-time
         if calc_iv == expected_iv {
             Ok(key)
         } else {
-            buf.fill(0);
+            // TODO(MSRV-?): use `buf.fill(0);`
+            key.fill(0);
+            iv.fill(0);
             Err(Error::IntegrityCheckFailed)
         }
     }
