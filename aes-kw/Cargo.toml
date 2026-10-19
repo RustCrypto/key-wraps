@@ -1,16 +1,15 @@
 [package]
 name = "aes-kw"
 version = "0.3.1"
-description = "NIST 800-38F AES Key Wrap (KW) and Key Wrap with Padding (KWP) modes"
 authors = ["RustCrypto Developers"]
-license = "MIT OR Apache-2.0"
-homepage = "https://github.com/RustCrypto/key-wraps/tree/aes-kw"
-repository = "https://github.com/RustCrypto/key-wraps"
-keywords = ["crypto", "AES-KW", "KW", "AES-KWP", "KWP"]
-categories = ["cryptography", "no-std"]
-readme = "README.md"
 edition = "2024"
 rust-version = "1.85"
+documentation = "https://docs.rs/aes-kw"
+repository = "https://github.com/RustCrypto/key-wraps"
+license = "MIT OR Apache-2.0"
+keywords = ["crypto", "AES-KW", "KW", "AES-KWP", "KWP"]
+categories = ["cryptography", "no-std"]
+description = "NIST 800-38F AES Key Wrap (KW) and Key Wrap with Padding (KWP) modes"
 
 [dependencies]
 aes = "0.9"
