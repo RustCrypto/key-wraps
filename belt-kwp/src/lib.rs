@@ -41,35 +41,67 @@ impl fmt::Debug for BeltKwp {
 }
 
 impl BeltKwp {
-    /// Wrap key `x` with given `iv` and write result to `out`.
+    /// Wrap `key` with given `iv` and write result to `dst`.
+    /// The resulting slice will have size equal to `key.len() + IV_LEN`.
     ///
-    /// Size of `x` must be bigger than 16 bytes.
-    /// Size of `out` must be bigger or equal to x.len() + [IV_LEN].
+    /// ## Errors
+    /// - If size of `key` is smaller than 16 bytes.
+    /// - If size of `dst` is smaller than to `key.len() + IV_LEN`.
     #[inline]
     pub fn wrap_key<'a>(
         &self,
-        x: &[u8],
+        key: &[u8],
         iv: &[u8; IV_LEN],
-        out: &'a mut [u8],
+        dst: &'a mut [u8],
     ) -> Result<&'a [u8], Error> {
-        if x.len() < 16 {
+        let key_len = key.len();
+        if key_len < 16 {
             return Err(Error::InvalidDataSize);
         }
 
-        let out_len = x.len() + IV_LEN;
-        if out.len() < out_len {
-            return Err(Error::InvalidOutputSize {
-                expected: x.len() + IV_LEN,
-            });
+        let dst = key_len
+            .checked_add(IV_LEN)
+            .and_then(|out_len| dst.get_mut(..out_len))
+            .ok_or(Error::InvalidOutputSize {
+                expected: key_len + IV_LEN,
+            })?;
+
+        let (key_dst, iv_dst) = dst.split_at_mut(key_len);
+        key_dst.copy_from_slice(key);
+        iv_dst.copy_from_slice(iv);
+
+        belt_wblock_enc(dst, &self.key).expect("`dst` has correct size");
+        Ok(dst)
+    }
+
+    /// Wrap the key held in `buf[..key_len]` with given `iv` in place and
+    /// return the wrapped key, i.e. `buf[..key_len + IV_LEN]`.
+    ///
+    /// ## Errors
+    /// - If `key_len` is smaller than 16 bytes.
+    /// - If size of `buf` is smaller than to `key.len() + IV_LEN`.
+    #[inline]
+    pub fn wrap_key_in_place<'a>(
+        &self,
+        buf: &'a mut [u8],
+        key_len: usize,
+        iv: &[u8; IV_LEN],
+    ) -> Result<&'a [u8], Error> {
+        if key_len < 16 {
+            return Err(Error::InvalidDataSize);
         }
-        let out = &mut out[..out_len];
 
-        let (l, r) = out.split_at_mut(x.len());
-        l.copy_from_slice(x);
-        r.copy_from_slice(iv);
+        let dst = key_len
+            .checked_add(IV_LEN)
+            .and_then(|out_len| buf.get_mut(..out_len))
+            .ok_or(Error::InvalidOutputSize {
+                expected: key_len + IV_LEN,
+            })?;
 
-        belt_wblock_enc(out, &self.key).map_err(|_| Error::InvalidDataSize)?;
-        Ok(out)
+        dst[key_len..].copy_from_slice(iv);
+
+        belt_wblock_enc(dst, &self.key).expect("`dst` has correct size");
+        Ok(dst)
     }
 
     /// Wrap fixed-size key `x` with given `iv` and return resulting array.
@@ -106,38 +138,53 @@ impl BeltKwp {
 
     /// Unwrap key in `y` with given `iv` and write result to `out`.
     ///
-    /// Size of wrapped data `y` must be bigger or equal to 32 bytes.
-    /// Size of `out` must be bigger or equal to the size of `y`.
+    /// ## Errors
+    /// - If size of `y` is smaller than 32 bytes.
+    /// - If size of `dst` is smaller than `y.len()`.
+    /// - If computed IV does not match `iv`.
     #[inline]
     pub fn unwrap_key<'a>(
         &self,
         y: &[u8],
         iv: &[u8; IV_LEN],
-        out: &'a mut [u8],
+        dst: &'a mut [u8],
     ) -> Result<&'a [u8], Error> {
-        if y.len() < 32 {
-            return Err(Error::InvalidDataSize);
-        }
-
-        if out.len() < y.len() {
-            return Err(Error::InvalidOutputSize { expected: y.len() });
-        }
-
-        let out = &mut out[..y.len()];
+        let out = dst
+            .get_mut(..y.len())
+            .ok_or(Error::InvalidOutputSize { expected: y.len() })?;
         out.copy_from_slice(y);
 
-        belt_wblock_dec(out, &self.key).map_err(|_| Error::InvalidDataSize)?;
+        self.unwrap_key_in_place(out, iv)
+    }
 
-        let (key, rem) = out.split_at_mut(y.len() - IV_LEN);
+    /// Unwrap the key held in `buf` with given `iv` in place and return the
+    /// unwrapped key, i.e. `buf[..buf.len() - IV_LEN]`.
+    ///
+    /// ## Errors
+    /// - If size of `buf` is smaller than 32 bytes.
+    /// - If computed IV does not match `iv`.
+    #[inline]
+    pub fn unwrap_key_in_place<'a>(
+        &self,
+        buf: &'a mut [u8],
+        iv: &[u8; IV_LEN],
+    ) -> Result<&'a [u8], Error> {
+        belt_wblock_dec(buf, &self.key).map_err(|_| Error::InvalidDataSize)?;
 
-        let calc_iv = u128::from_ne_bytes(rem.try_into().unwrap());
         let expected_iv = u128::from_ne_bytes(*iv);
+        let (key, iv) = buf
+            .split_last_chunk_mut::<IV_LEN>()
+            .expect("`belt_wblock_dec` ensures that `buf.len() >= 32`");
+
+        let calc_iv = u128::from_ne_bytes(*iv);
+
         // We expect that comparison of `u128`s will be constant-time
         if calc_iv == expected_iv {
             Ok(key)
         } else {
+            // TODO(MSRV-?): use `buf.fill(0);`
             key.fill(0);
-            rem.fill(0);
+            iv.fill(0);
             Err(Error::IntegrityCheckFailed)
         }
     }
@@ -174,9 +221,11 @@ impl BeltKwp {
         belt_wblock_dec(&mut y, &self.key).expect("y has correct size");
 
         // We could've used `Array:split`, but it's easier to do it this way
-        let (key, rem) = y.split_at(N::USIZE);
+        let (key, calc_iv) = y
+            .split_last_chunk::<IV_LEN>()
+            .expect("`belt_wblock_dec` ensures that `buf.len() >= 32`");
 
-        let calc_iv = u128::from_ne_bytes(rem.try_into().unwrap());
+        let calc_iv = u128::from_ne_bytes(*calc_iv);
         let expected_iv = u128::from_ne_bytes(*iv);
         // We expect that comparison of `u128`s will be constant-time
         if calc_iv == expected_iv {
