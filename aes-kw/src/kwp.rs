@@ -98,7 +98,7 @@ impl<C: BlockCipherEncrypt<BlockSize = U16>> AesKwp<C> {
     /// bytes (i.e. 8 bytes) longer than the length of `data`.
     #[inline]
     pub fn wrap_key<'a>(&self, key: &[u8], buf: &'a mut [u8]) -> Result<&'a [u8], Error> {
-        if key.len() > KWP_MAX_LEN {
+        if key.is_empty() || key.len() > KWP_MAX_LEN {
             return Err(Error::InvalidDataSize);
         }
 
@@ -229,7 +229,8 @@ impl<C: BlockCipherDecrypt<BlockSize = U16>> AesKwp<C> {
     pub fn unwrap_key<'a>(&self, data: &[u8], buf: &'a mut [u8]) -> Result<&'a [u8], Error> {
         let blocks_len = data.len() / IV_LEN;
         let blocks_rem = data.len() % IV_LEN;
-        if blocks_rem != 0 || blocks_len < 1 || data.len() > KWP_MAX_LEN {
+        // The AIV plus at least one semiblock of padded key data.
+        if blocks_rem != 0 || blocks_len < 2 || data.len() > KWP_MAX_LEN {
             return Err(Error::InvalidDataSize);
         }
 

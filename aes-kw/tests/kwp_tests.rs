@@ -168,6 +168,12 @@ fn error_invalid_data_size() {
     assert_eq!(res, Err(Error::InvalidDataSize));
     let res = kwp.unwrap_key(&[], &mut buf);
     assert_eq!(res, Err(Error::InvalidDataSize));
+
+    // An empty key has nothing to wrap, and a single semiblock has no key data.
+    let res = kwp.wrap_key(&[], &mut buf);
+    assert_eq!(res, Err(Error::InvalidDataSize));
+    let res = kwp.unwrap_key(&[0u8; 8], &mut buf);
+    assert_eq!(res, Err(Error::InvalidDataSize));
 }
 
 #[test]

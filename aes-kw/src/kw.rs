@@ -81,7 +81,7 @@ impl<C: BlockCipherEncrypt<BlockSize = U16>> AesKw<C> {
     #[inline]
     pub fn wrap_key<'a>(&self, key: &[u8], buf: &'a mut [u8]) -> Result<&'a [u8], Error> {
         let blocks_rem = key.len() % IV_LEN;
-        if blocks_rem != 0 {
+        if blocks_rem != 0 || key.is_empty() {
             return Err(Error::InvalidDataSize);
         }
 
@@ -168,13 +168,14 @@ impl<C: BlockCipherDecrypt<BlockSize = U16>> AesKw<C> {
     ///
     /// Returns slice which points to `buf` and contains unwrapped data.
     ///
-    /// Length of `data` must be multiple of [`IV_LEN`] and bigger than zero.
+    /// Length of `data` must be multiple of [`IV_LEN`] and at least `2 * IV_LEN`.
     /// Length of `buf` must be bigger or equal to `data.len()`.
     #[inline]
     pub fn unwrap_key<'a>(&self, wkey: &[u8], buf: &'a mut [u8]) -> Result<&'a [u8], Error> {
         let blocks_len = wkey.len() / IV_LEN;
         let blocks_rem = wkey.len() % IV_LEN;
-        if blocks_rem != 0 || blocks_len < 1 {
+        // The IV plus at least one semiblock of key data.
+        if blocks_rem != 0 || blocks_len < 2 {
             return Err(Error::InvalidDataSize);
         }
 
