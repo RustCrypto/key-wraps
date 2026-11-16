@@ -38,6 +38,26 @@ test_aes_kwp!(
     hex!("afbeb0f07dfbf5419200f2ccb50bb24f")
 );
 
+#[test]
+fn wrap_unwrap_one_byte_key() {
+    let key = hex!("000102030405060708090A0B0C0D0E0F");
+    let kwp = KwpAes128::new(&key.into());
+    let input = [0x42];
+    let mut wrapped_buf = [0u8; 16];
+    let wrapped = kwp.wrap_key(&input, &mut wrapped_buf).unwrap();
+    let mut unwrapped_buf = [0u8; 8];
+    assert_eq!(kwp.unwrap_key(wrapped, &mut unwrapped_buf).unwrap(), input);
+
+    let wrapped_fixed = kwp.wrap_fixed_key::<consts::U1>((&input).into());
+    assert_eq!(wrapped_fixed.as_slice(), wrapped);
+    assert_eq!(
+        kwp.unwrap_fixed_key::<consts::U1>(&wrapped_fixed)
+            .unwrap()
+            .as_slice(),
+        input
+    );
+}
+
 // These test vectors were obtained using NIST's CAVP system
 
 test_aes_kwp!(
@@ -169,7 +189,7 @@ fn error_invalid_data_size() {
     let res = kwp.unwrap_key(&[], &mut buf);
     assert_eq!(res, Err(Error::InvalidDataSize));
 
-    // An empty key has nothing to wrap, and a single semiblock has no key data.
+    // Empty plaintext is invalid, and a single ciphertext semiblock is too short.
     let res = kwp.wrap_key(&[], &mut buf);
     assert_eq!(res, Err(Error::InvalidDataSize));
     let res = kwp.unwrap_key(&[0u8; 8], &mut buf);

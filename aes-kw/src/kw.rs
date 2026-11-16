@@ -5,7 +5,7 @@ use aes::cipher::{
     Array, Block, BlockCipherDecrypt, BlockCipherEncrypt,
     array::ArraySize,
     common::{InnerInit, InnerUser},
-    typenum::{Mod, NonZero, Sum, U16, Zero},
+    typenum::{GrEq, IsGreaterOrEqual, Mod, NonZero, Sum, U16, Zero},
 };
 
 /// Default Initial Value for AES-KW as defined in RFC3394 § 2.2.3.1.
@@ -76,12 +76,12 @@ impl<C: BlockCipherEncrypt<BlockSize = U16>> AesKw<C> {
     ///
     /// Returns slice which points to `buf` and contains wrapped data.
     ///
-    /// Length of `data` must be multiple of [`IV_LEN`] and bigger than zero.
-    /// Length of `buf` must be bigger or equal to `data.len() + IV_LEN`.
+    /// Length of `key` must be a multiple of [`IV_LEN`] and at least 16 bytes.
+    /// Length of `buf` must be at least `key.len() + IV_LEN`.
     #[inline]
     pub fn wrap_key<'a>(&self, key: &[u8], buf: &'a mut [u8]) -> Result<&'a [u8], Error> {
         let blocks_rem = key.len() % IV_LEN;
-        if blocks_rem != 0 || key.is_empty() {
+        if blocks_rem != 0 || key.len() < 2 * IV_LEN {
             return Err(Error::InvalidDataSize);
         }
 
@@ -97,10 +97,12 @@ impl<C: BlockCipherEncrypt<BlockSize = U16>> AesKw<C> {
 
     /// Wrap fixed-size key `key` and return wrapped key.
     ///
+    /// The key must be a multiple of 8 bytes and at least 16 bytes long.
+    ///
     /// This method is roughly equivalent to:
     /// ```ignore
     /// const fn check_key_size(n: usize) -> usize {
-    ///     assert!(n != 0 && n % IV_LEN == 0);
+    ///     assert!(n >= 16 && n % IV_LEN == 0);
     ///     0
     /// }
     ///
@@ -117,9 +119,10 @@ impl<C: BlockCipherEncrypt<BlockSize = U16>> AesKw<C> {
     #[inline]
     pub fn wrap_fixed_key<N>(&self, key: &Array<u8, N>) -> KwWrappedKey<N>
     where
-        N: ArraySize + NonZero + Add<IvLen> + Rem<IvLen>,
+        N: ArraySize + NonZero + Add<IvLen> + Rem<IvLen> + IsGreaterOrEqual<U16>,
         Sum<N, IvLen>: ArraySize,
         Mod<N, IvLen>: Zero,
+        GrEq<N, U16>: NonZero,
     {
         let mut buf = KwWrappedKey::<N>::default();
         self.wrap_key_trusted(key, &mut buf);
@@ -168,14 +171,14 @@ impl<C: BlockCipherDecrypt<BlockSize = U16>> AesKw<C> {
     ///
     /// Returns slice which points to `buf` and contains unwrapped data.
     ///
-    /// Length of `data` must be multiple of [`IV_LEN`] and at least `2 * IV_LEN`.
-    /// Length of `buf` must be bigger or equal to `data.len()`.
+    /// Length of `wkey` must be a multiple of [`IV_LEN`] and at least 24 bytes.
+    /// Length of `buf` must be at least `wkey.len() - IV_LEN`.
     #[inline]
     pub fn unwrap_key<'a>(&self, wkey: &[u8], buf: &'a mut [u8]) -> Result<&'a [u8], Error> {
         let blocks_len = wkey.len() / IV_LEN;
         let blocks_rem = wkey.len() % IV_LEN;
-        // The IV plus at least one semiblock of key data.
-        if blocks_rem != 0 || blocks_len < 2 {
+        // The IV plus at least two semiblocks of key data.
+        if blocks_rem != 0 || blocks_len < 3 {
             return Err(Error::InvalidDataSize);
         }
 
@@ -191,12 +194,14 @@ impl<C: BlockCipherDecrypt<BlockSize = U16>> AesKw<C> {
         Ok(buf)
     }
 
-    /// Unwrap key in `data` and return unwrapped key.
+    /// Unwrap key in `wkey` and return unwrapped key.
+    ///
+    /// The wrapped key must be at least 24 bytes long.
     ///
     /// This method is roughly equivalent to:
     /// ```ignore
     /// const fn check_key_size(n: usize) -> usize {
-    ///     assert!(n != 0 && n % IV_LEN == 0);
+    ///     assert!(n >= 16 && n % IV_LEN == 0);
     ///     0
     /// }
     ///
@@ -216,9 +221,10 @@ impl<C: BlockCipherDecrypt<BlockSize = U16>> AesKw<C> {
         wkey: &KwWrappedKey<N>,
     ) -> Result<Array<u8, N>, IntegrityCheckFailed>
     where
-        N: ArraySize + NonZero + Add<IvLen> + Rem<IvLen>,
+        N: ArraySize + NonZero + Add<IvLen> + Rem<IvLen> + IsGreaterOrEqual<U16>,
         Sum<N, IvLen>: ArraySize,
         Mod<N, IvLen>: Zero,
+        GrEq<N, U16>: NonZero,
     {
         let mut buf = Array::<u8, N>::default();
         self.unwrap_key_trusted(wkey, &mut buf)?;

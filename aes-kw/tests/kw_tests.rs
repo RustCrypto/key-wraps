@@ -88,11 +88,17 @@ fn error_invalid_data_size() {
     let res = kek.unwrap_key(&output, &mut buf);
     assert_eq!(res, Err(Error::InvalidDataSize));
 
-    // An empty key has nothing to wrap, and a single semiblock has no key data.
+    // KW requires two semiblocks of key data and one semiblock for the IV.
     let res = kek.wrap_key(&[], &mut buf);
     assert_eq!(res, Err(Error::InvalidDataSize));
 
+    let res = kek.wrap_key(&[0u8; 8], &mut buf);
+    assert_eq!(res, Err(Error::InvalidDataSize));
+
     let res = kek.unwrap_key(&[0u8; 8], &mut buf);
+    assert_eq!(res, Err(Error::InvalidDataSize));
+
+    let res = kek.unwrap_key(&[0u8; 16], &mut buf);
     assert_eq!(res, Err(Error::InvalidDataSize));
 
     let res = kek.unwrap_key(&[], &mut buf);
