@@ -98,7 +98,7 @@ impl<C: BlockCipherEncrypt<BlockSize = U16>> AesKwp<C> {
     /// bytes (i.e. 8 bytes) longer than the length of `data`.
     #[inline]
     pub fn wrap_key<'a>(&self, key: &[u8], buf: &'a mut [u8]) -> Result<&'a [u8], Error> {
-        if key.len() > KWP_MAX_LEN {
+        if key.is_empty() || key.len() > KWP_MAX_LEN {
             return Err(Error::InvalidDataSize);
         }
 
@@ -119,12 +119,21 @@ impl<C: BlockCipherEncrypt<BlockSize = U16>> AesKwp<C> {
 
     /// Wrap fixed-size key `key` and return wrapped key.
     ///
+    /// The key must be non-empty; keys of 1 to 8 bytes use the single-block path.
+    ///
     /// This method is roughly equivalent to:
     /// ```ignore
+    /// const fn check_key_size(n: usize) -> usize {
+    ///     assert!(n != 0);
+    ///     0
+    /// }
+    ///
     /// pub fn wrap_fixed_key<const N: usize>(
     ///     &self,
     ///     key: &[u8; N],
     /// ) -> [u8; IV_LEN * (N.div_ceil(IV_LEN) + 1)]
+    /// where
+    ///     [(); check_key_size(N)]: Sized,
     /// { ... }
     /// ```
     /// but uses [`hybrid_array::Array`][Array] instead of built-in arrays
@@ -132,7 +141,7 @@ impl<C: BlockCipherEncrypt<BlockSize = U16>> AesKwp<C> {
     #[inline]
     pub fn wrap_fixed_key<N>(&self, key: &Array<u8, N>) -> KwpWrappedKey<N>
     where
-        N: ArraySize + Add<IvLenM1> + IsLess<KwpMaxLen>,
+        N: ArraySize + NonZero + Add<IvLenM1> + IsLess<KwpMaxLen>,
         Le<N, KwpMaxLen>: NonZero,
         Sum<N, IvLenM1>: Div<IvLen>,
         Quot<Sum<N, IvLenM1>, IvLen>: Add<B1>,
@@ -229,7 +238,8 @@ impl<C: BlockCipherDecrypt<BlockSize = U16>> AesKwp<C> {
     pub fn unwrap_key<'a>(&self, data: &[u8], buf: &'a mut [u8]) -> Result<&'a [u8], Error> {
         let blocks_len = data.len() / IV_LEN;
         let blocks_rem = data.len() % IV_LEN;
-        if blocks_rem != 0 || blocks_len < 1 || data.len() > KWP_MAX_LEN {
+        // The AIV plus at least one semiblock of padded key data.
+        if blocks_rem != 0 || blocks_len < 2 || data.len() > KWP_MAX_LEN {
             return Err(Error::InvalidDataSize);
         }
 
@@ -245,12 +255,21 @@ impl<C: BlockCipherDecrypt<BlockSize = U16>> AesKwp<C> {
 
     /// Unwrap fixed-size wrapped key `wkey` and return resulting key.
     ///
+    /// The resulting key must be non-empty.
+    ///
     /// This method is roughly equivalent to:
     /// ```ignore
+    /// const fn check_key_size(n: usize) -> usize {
+    ///     assert!(n != 0);
+    ///     0
+    /// }
+    ///
     /// pub fn unwrap_fixed_key<const N: usize>(
     ///     &self,
     ///     wkey: &[u8; IV_LEN * (N.div_ceil(IV_LEN) + 1)],
     /// ) -> [u8; N]
+    /// where
+    ///     [(); check_key_size(N)]: Sized,
     /// { ... }
     /// ```
     /// but uses [`hybrid_array::Array`][Array] instead of built-in arrays
@@ -261,7 +280,7 @@ impl<C: BlockCipherDecrypt<BlockSize = U16>> AesKwp<C> {
         wkey: &KwpWrappedKey<N>,
     ) -> Result<Array<u8, N>, IntegrityCheckFailed>
     where
-        N: ArraySize + Add<IvLenM1> + IsLess<KwpMaxLen>,
+        N: ArraySize + NonZero + Add<IvLenM1> + IsLess<KwpMaxLen>,
         Le<N, KwpMaxLen>: NonZero,
         Sum<N, IvLenM1>: Div<IvLen>,
         Quot<Sum<N, IvLenM1>, IvLen>: Add<B1> + Mul<IvLen>,
